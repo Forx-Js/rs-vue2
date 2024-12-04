@@ -1,0 +1,28 @@
+{
+  "name": "rs-vue2",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "rsbuild build",
+    "check": "biome check --write",
+    "dev": "rsbuild dev --open",
+    "format": "biome format --write",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "vue": "^2.7.16"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.3",
+    "@rsbuild/core": "^1.1.4",
+    "@rsbuild/plugin-pug": "^1.0.2",
+    "@rsbuild/plugin-sass": "^1.1.1",
+    "@rsbuild/plugin-vue2": "^1.0.2",
+    "pug": "^3.0.3"
+  },
+  "volta": {
+    "node": "20.16.0",
+    "pnpm": "9.7.1"
+  }
+}
