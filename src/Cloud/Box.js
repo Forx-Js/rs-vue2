@@ -42,7 +42,11 @@ export class Cloud {
   }
   /** @type {HTMLDivElement} */
   pageDom
+  /**
+   * @param {CloudData} data 
+   */
   constructor(data) {
+    if (!data) throw new Error('data is required')
     this.data = data
   }
   /** @type {CanvasRenderingContext2D} */
