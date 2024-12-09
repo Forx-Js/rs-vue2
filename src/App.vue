@@ -9,6 +9,8 @@
   )
   canvas.create(ref="canvas")
   button.btn(@click="createCloud") 添加
+  .list(v-for="cloud in clouds")
+    button(@click="clickHandler(cloud)") {{ cloud.data.strText }}
 </template>
 <script>
 import { onUnmounted, ref } from "vue";
@@ -17,7 +19,11 @@ export default {
   setup() {
     const canvas = ref(),
       iframe = ref();
+    const clouds = ref([]);
     let manager = new PdfManager();
+    manager.onClouds((c) => {
+      clouds.value = [...c];
+    });
     onUnmounted(() => {
       manager.destroy();
     });
@@ -25,14 +31,19 @@ export default {
       manager.setIframe(iframe.value);
       manager.setCanvas(canvas.value);
       const data = Cloud.data({
-        mark: [0.2, 0.7],
-        points: [0.45, 0.45, 0.6, 0.6],
+        mark: [0.2, 0.2],
+        points: [0.1, 0.1, 0.3, 0.3],
         index: 1,
+        lineWidth: 2,
+        type: 1,
         color: 0xff0000,
-        strText: "pppppp",
+        strText: "99999999",
       });
       const cloud = new Cloud(data);
       manager.add(cloud);
+    }
+    async function clickHandler(cloud) {
+      manager.pdfViewer.scrollPageIntoView({ pageNumber: cloud.index });
     }
     async function createCloud() {
       const a = manager.createCloud();
@@ -52,6 +63,8 @@ export default {
       createCloud,
       canvas,
       iframe,
+      clouds,
+      clickHandler,
     };
   },
 };
@@ -89,5 +102,13 @@ iframe {
   height: 100vh;
   width: 100vw;
   background-image: linear-gradient(20deg, #db43db, #120999);
+}
+.list {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background-color: #fff;
 }
 </style>
