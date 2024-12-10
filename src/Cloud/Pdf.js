@@ -44,7 +44,7 @@ export class PdfManager extends CloudManager {
   }
   renderView = throttle(() => {
     this.renderPage();
-  }, 40, { trailing: true, leading: false })
+  }, 32, { trailing: true, leading: false })
   #onPageScroll = () => {
     this.renderView()
   }
