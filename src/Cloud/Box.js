@@ -10,10 +10,9 @@
  * @property {number} lineWidth 线宽
  */
 
-import { first, isSafeInteger, last } from "lodash-es"
+import { first, flatten, last, max, min, zip } from "lodash-es"
 
 export class Cloud {
-
   /** @type {(data:CloudData)=>CloudData} */
   static data(data = {}) {
     return {
@@ -76,6 +75,8 @@ export class Cloud {
     this.#renderMark(path)
     ctx.restore();
   }
+  /** @type {Path2D}  */
+  boxPath
   #getBoxPath() {
     const { data: { points, type } } = this;
     const isSetPoint = !!points.length
@@ -89,6 +90,7 @@ export class Cloud {
         this.#drawRect(path)
         break
     }
+    this.boxPath = path;
     return path
   }
   #renderBox(path) {
@@ -102,15 +104,15 @@ export class Cloud {
     ctx.restore();
     ctx.stroke(path);
   }
-  _transform(rect) {
-    return rect
+  _transform() {
+    return this.manager._transform(this)
   }
   #renderMark(path) {
     const { data: { points, mark, textHeight, strText } } = this;
     const isSetPoint = !!points.length
     const isSetMark = !!mark.length;
     if (!isSetMark || !isSetPoint) return
-    const boxRect = this.#boxRect;
+    const boxRect = this.boxRect;
     const ctx = this.#ctx;
     ctx.font = `${textHeight}px Arial`;
     ctx.textAlign = boxRect.markX > boxRect.x2 ? "left" : boxRect.markX < boxRect.x1 ? "right" : 'center';
@@ -127,11 +129,23 @@ export class Cloud {
     ctx.moveTo(boxRect.markX, boxRect.markY);
     if (ctx.isPointInPath(path, boxRect.markX, boxRect.markY)) {
       // 计算延长线
-      const k = (boxRect.markY - boxRect.cy) / (boxRect.markX - boxRect.cx) || 0;
-      const d = (boxRect.markX < boxRect.cx) ? -1 : 1
-      const dx = boxRect.width * d;
-      const dy = dx * k;
-      ctx.lineTo(boxRect.cx + dx, boxRect.cy + dy);
+      const dy = boxRect.markY - boxRect.cy;
+      const dx = boxRect.markX - boxRect.cx;
+      if (Math.abs(dx) < 0.1) {
+        const k = dy > 0 ? 1 : -1
+        const l = (100 + boxRect.height) * k
+        ctx.lineTo(boxRect.cx, boxRect.cy + l);
+      } else if (Math.abs(dy) < 0.1) {
+        const k = dx > 0 ? 1 : -1
+        const l = (100 + boxRect.width) * k
+        ctx.lineTo(boxRect.cx + l, boxRect.cy);
+      } else {
+        const k = dy / dx;
+        const d = dx < 0 ? -1 : 1
+        const x = boxRect.width * d;
+        const y = x * k;
+        ctx.lineTo(boxRect.cx + x, boxRect.cy + y);
+      }
     } else {
       ctx.lineTo(boxRect.cx, boxRect.cy);
     }
@@ -140,23 +154,34 @@ export class Cloud {
     ctx.fillText(strText, boxRect.markX, boxRect.markY);
   }
   // 计算框体大小位置数据
-  #boxRect = { width: 0, height: 0, left: 0, top: 0, x1: 0, y1: 0, x2: 0, y2: 0, cx: 0, cy: 0, markX: 0, markY: 0 }
+  boxRect = {
+    width: 0, height: 0, left: 0, top: 0, x1: 0, y1: 0, x2: 0, y2: 0, cx: 0, cy: 0, markX: 0, markY: 0,
+    points: []
+  }
   getBoxRect() {
-    const { points, mark: [mx, my] } = this._transform(this.data)
+    const { points: _points, mark: [mx, my] } = this._transform()
     const pageRect = this.pageRect;
     const canvasRect = this.#ctx.canvas.getBoundingClientRect();
     const { width, height } = pageRect;
     const left = pageRect.left - canvasRect.left;
     const top = pageRect.top - canvasRect.top;
-    const [x1, x2] = [points[0], points[2]].sort((a, b) => a - b).map(v => v * width + left);
-    const [y1, y2] = [points[1], points[3]].sort((a, b) => a - b).map(v => v * height + top);
-    const cx = x1 + ((x2 - x1) >> 1);
-    const cy = y1 + ((y2 - y1) >> 1);
-    const markX = mx * width + left;
-    const markY = my * height + top;
-    const rect = { width, height, left, top, x1, y1, x2, y2, cx, cy, markX, markY };
-    this.#boxRect = rect;
-    return this.#boxRect;
+    const [xRow, yRow] = _points.reduce((list, val, index) => {
+      list[index % 2].push(val);
+      return list;
+    }, [[], []])
+    const points_x = xRow.map(v => v * width + left),
+      points_y = yRow.map(v => v * height + top);
+    const x1 = min(points_x),
+      x2 = max(points_x),
+      y1 = min(points_y),
+      y2 = max(points_y)
+    const cx = x1 + ((x2 - x1) >> 1),
+      cy = y1 + ((y2 - y1) >> 1);
+    const markX = mx * width + left, markY = my * height + top;
+    const points = flatten(zip(points_x, points_y))
+    const rect = { width, height, left, top, points, x1, y1, x2, y2, cx, cy, markX, markY, };
+    this.boxRect = rect;
+    return this.boxRect;
   }
   // 绘制云线框
   /**  @param {Path2D} path  */
@@ -170,7 +195,7 @@ export class Cloud {
   }
   // 计算云线波浪线
   #getBoxCell() {
-    const { x1, y1, x2, y2 } = this.#boxRect;
+    const { x1, y1, x2, y2 } = this.boxRect;
     const w = x2 - x1;
     const h = y2 - y1;
     const maxSize = Math.max(w, h);
@@ -199,7 +224,7 @@ export class Cloud {
   }
   // 绘制矩形框
   #drawRect(path) {
-    const { x1, y1, x2, y2 } = this.#boxRect;
+    const { x1, y1, x2, y2 } = this.boxRect;
     path.rect(x1, y1, x2 - x1, y2 - y1);
   }
 }

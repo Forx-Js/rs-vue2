@@ -18,4 +18,7 @@ export class CloudManager {
       cloud.render(this);
     }
   }
+  _transform(data) {
+    return data
+  }
 } 

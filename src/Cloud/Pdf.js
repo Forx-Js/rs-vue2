@@ -1,4 +1,4 @@
-import { pullAll, throttle } from "lodash-es";
+import { chunk, flatten, max, min, pullAll, throttle } from "lodash-es";
 import { CloudManager } from "./Manager";
 import { Cloud } from "./Box";
 let moveHandler, clickHandler;
@@ -12,14 +12,19 @@ export class PdfManager extends CloudManager {
   get pdfViewer() {
     return this.iframe.contentWindow?.PDFViewerApplication?.pdfViewer
   }
+  /** @type {Cloud[]} */
   clouds = []
+  /** @type {Cloud[]} */
   visibleClouds = []
   #activePage = new Set()
+  /** @type {IntersectionObserver} */
   #scroll_obs
+  /** @type {MutationObserver} */
   #page_obs
+  /** @type {ResizeObserver} */
   #size_obs
   /** @type {HTMLDivElement} */
-  #pageRootDom
+  pageRootDom
   #onChange
   onClouds(fn) {
     this.#onChange = fn;
@@ -39,9 +44,18 @@ export class PdfManager extends CloudManager {
   }
   renderView = throttle(() => {
     this.renderPage();
-  }, 60)
+  }, 40, { trailing: true, leading: false })
   #onPageScroll = () => {
-    setTimeout(this.renderView, 10)
+    this.renderView()
+  }
+  hoverPoint = []
+  baseCanvasMove = (e) => {
+    if (!this.ctx || !this.visibleClouds.length) {
+      this.hoverPoint = []
+    } else {
+      this.hoverPoint = this.getXY(e);
+    }
+    this.renderView()
   }
   renderPage() {
     const visibleClouds = [];
@@ -50,34 +64,7 @@ export class PdfManager extends CloudManager {
     const _tem_cloud = this._tem_cloud;
     for (const page of activePage) {
       const index = ~~page.dataset.pageNumber;
-      const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
-      const _transform = function (_data) {
-        const rotation = pdf.viewport.rotation;
-        const d = rotation / 90;
-        const x = d === 2 || d === 1
-        const y = d === 2 || d === 3
-        const data = {
-          ..._data,
-          points: [..._data.points],
-          mark: [..._data.mark]
-        }
-        if (d) {
-          if (x) {
-            for (let i = 0; i < data.points.length; i += 2)
-              data.points[i] = 1 - data.points[i]
-            data.mark[0] = 1 - data.mark[0]
-          }
-          if (y) {
-            for (let i = 1; i < data.points.length; i += 2)
-              data.points[i] = 1 - data.points[i]
-            data.mark[1] = 1 - data.mark[1]
-          }
-        }
-        return data
-      }
-
       for (const cloud of clouds) {
-        cloud._transform = _transform
         if (cloud.index === index) {
           cloud.pageDom = page;
           visibleClouds.push(cloud);
@@ -97,7 +84,7 @@ export class PdfManager extends CloudManager {
     this.#size_obs.observe(root);
     this.#page_obs.observe(viewer, { childList: true });
     root.addEventListener("scroll", this.#onPageScroll);
-    this.#pageRootDom = root
+    this.pageRootDom = root
   }
   #initObs() {
     this.#scroll_obs = new IntersectionObserver((rectList) => {
@@ -109,19 +96,21 @@ export class PdfManager extends CloudManager {
           activePage.delete(rect.target);
         }
       }
+      this.renderView();
     });
     this.#page_obs = new MutationObserver(() => {
-      const pages = this.#pageRootDom.querySelectorAll(".page");
+      const pages = this.pageRootDom.querySelectorAll(".page");
       const scroll_obs = this.#scroll_obs
       const size_obs = this.#size_obs
       for (const page of pages) {
+        // page.addEventListener('pointermove', this.baseCanvasMove)
         scroll_obs.observe(page);
         size_obs.observe(page);
       }
     });
     this.#size_obs = new ResizeObserver(() => {
       const iframe = this.iframe
-      const pageRootDom = this.#pageRootDom
+      const pageRootDom = this.pageRootDom
       const iframeRect = iframe.getBoundingClientRect();
       const pageRect = pageRootDom.getBoundingClientRect();
       this.canvas.height = pageRect.height;
@@ -134,69 +123,130 @@ export class PdfManager extends CloudManager {
     });
   }
   getAllPage() {
-    return [...this.#pageRootDom.querySelectorAll(".page")];
-  }
-  removePageEvent() {
-    const pages = this.getAllPage();
-    for (const page of pages) {
-      page.removeEventListener("mousemove", moveHandler);
-      page.removeEventListener("click", clickHandler);
-    }
+    return [...this.pageRootDom.querySelectorAll(".page")];
   }
   createCloud() {
     this.renderView();
-    this.removePageEvent();
+    this.#removePageEvent();
     return this.createStep()
   }
   /** 异步方法 */
-  async *createStep() {
+  async * createStep() {
     const pages = this.getAllPage();
     let e, x, y
-    e = await addPageEvent.call(this, pages)
-    const data = Cloud.data();
+    e = await this.#addPageEvent(pages)
+    const data = Cloud.data({ scale: 1 });
     const _tem_cloud = new Cloud(data);
     this._tem_cloud = _tem_cloud;
     const page = getEventPage(e);
     const index = ~~page.dataset.pageNumber;
     _tem_cloud.index = index;
     _tem_cloud.pageDom = page;
-    [x, y] = getXY(e);
+    [x, y] = this.getXY(e);
     _tem_cloud.data.points = [x, y, x, y];
-    this.removePageEvent();
-    this.renderView();
     yield _tem_cloud;
-    e = await addPageEvent.call(this, page, createMove1);
-    [x, y] = getXY(e);
-    _tem_cloud.data.points[2] = x;
-    _tem_cloud.data.points[3] = y;
-    this.renderView();
-    this.removePageEvent();
+    await this.#addPageEvent(page, createMove1);
     yield _tem_cloud;
-    e = await addPageEvent.call(this, page, createMove2);
-    [x, y] = getXY(e);
-    _tem_cloud.data.mark[0] = x;
-    _tem_cloud.data.mark[1] = y;
-    this.removePageEvent();
-    yield _tem_cloud;
+    await this.#addPageEvent(page, createMove2);
+    const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
+    _tem_cloud.data.scale = pdf.viewport.scale;
     this._tem_cloud = null;
-    this.add(_tem_cloud);
-    this.renderView();
     return _tem_cloud
   }
+  getXY(e) {
+    const page = getEventPage(e);
+    const rect = page.getBoundingClientRect();
+    const index = ~~page.dataset.pageNumber;
+    const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
+    let x = (e.clientX - rect.left) / rect.width;
+    let y = (e.clientY - rect.top) / rect.height;
+    const xy = this.getRotateXY([x, y], 360 - pdf.viewport.rotation)
+    return xy;
+  }
+  getRotateXY(xy = [], rotation = 0) {
+    const d = rotation / 90;
+    const kx = d === 2 || d === 1
+    const ky = d === 2 || d === 3
+    if (d % 2) xy.reverse();
+    if (kx) xy[0] = 1 - xy[0]
+    if (ky) xy[1] = 1 - xy[1]
+    return xy
+  }
+  /** @param {Cloud} cloud */
+  _transform(cloud) {
+    const { data: _data, index } = cloud
+    const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
+    const data = {
+      ..._data,
+      points: [],
+      mark: []
+    }
+    data.points = flatten(chunk(_data.points, 2).map(xy => this.getRotateXY(xy, pdf.viewport.rotation)))
+    data.mark = this.getRotateXY([..._data.mark], pdf.viewport.rotation)
+    return data
+  }
+  /** 
+   * @description 给dom添加点击事件,并返回一个promise,限制到点击事件第一次触发
+   * @param {HTMLDivElement|HTMLDivElement[]} page
+   * @param {(e:MouseEvent)=>void} move
+   **/
+  #addPageEvent(page, move) {
+    /**  @type {HTMLDivElement[]} */
+    const pages = [].concat(page);
+    const { resolve, promise } = withResolvers()
+    if (move) moveHandler = (e) => { move.call(this, e) }
+    clickHandler = (e) => {
+      move && move.call(this, e);
+      this.#removePageEvent()
+      resolve(e)
+    }
+    for (const page of pages) {
+      move && page.addEventListener("pointermove", moveHandler);
+      page.addEventListener("pointerdown", clickHandler);
+    }
+    return promise
+  }
+  #removePageEvent() {
+    const pages = this.getAllPage();
+    for (const page of pages) {
+      page.removeEventListener('pointermove', moveHandler);
+      page.removeEventListener("pointerdown", clickHandler);
+    }
+  }
+  jump(cloud) {
+    const { pdfViewer, canvas } = this;
+    pdfViewer.currentScale = cloud.data.scale;
+    const page = pdfViewer._pages[cloud.index - 1];
+    const pageDom = page.div;
+    const { points, mark } = cloud.data;
+    const [xRow, yRow] = [...points, ...mark].reduce(
+      (list, val, index) => {
+        list[index % 2].push(val);
+        return list;
+      },
+      [[], []]
+    );
+    const cx = (max(xRow) + min(xRow)) / 2,
+      cy = (max(yRow) + min(yRow)) / 2;
+    const { height, width } = canvas.getBoundingClientRect();
+    const left = pageDom.offsetLeft + page.width * cx - (width >> 1);
+    const top = pageDom.offsetTop + page.height * cy - (height >> 1);
+    pdfViewer.container.scrollTo({ left, top });
+  }
   destroy() {
-    this.removePageEvent();
+    this.#removePageEvent();
     this._tem_cloud = null
     this.clear()
     this.#scroll_obs.disconnect();
     this.#page_obs.disconnect();
     this.#size_obs.disconnect();
-    this.#pageRootDom.removeEventListener("scroll", this.#onPageScroll);
+    this.pageRootDom.removeEventListener("scroll", this.#onPageScroll);
   }
 }
 /**
-   * @description 同 {Promise.withResolvers}
-   * @returns {{ promise: Promise, resolve: (value: any) => void, reject:(reason?: any) => void }}
-   */
+ * @description 同 {Promise.withResolvers}
+ * @returns {{ promise: Promise, resolve: (value: any) => void, reject:(reason?: any) => void }}
+ */
 function withResolvers() {
   let resolve, reject;
   const promise = new Promise((res, rej) => {
@@ -206,27 +256,10 @@ function withResolvers() {
   const resolver = { promise, resolve, reject };
   return resolver;
 }
-/** 
- * @description 给dom添加点击事件,并返回一个promise,限制到点击事件第一次触发
- * @param {HTMLDivElement|HTMLDivElement[]} page
- * @param {(e:MouseEvent)=>void} move
- **/
-function addPageEvent(page, move) {
-  /**  @type {HTMLDivElement[]} */
-  const pages = [].concat(page);
-  const { resolve, promise } = withResolvers()
-  if (move) moveHandler = (e) => { move.call(this, e) }
-  clickHandler = resolve
-  for (const page of pages) {
-    page.addEventListener("click", clickHandler);
-    move && page.addEventListener("mousemove", moveHandler);
-  }
-  return promise
-}
 /** @param {MouseEvent} e */
 function createMove1(e) {
   e.preventDefault();
-  const [x, y] = getXY(e);
+  const [x, y] = this.getXY(e);
   const _tem_cloud = this._tem_cloud
   _tem_cloud.data.points[2] = x;
   _tem_cloud.data.points[3] = y;
@@ -235,7 +268,7 @@ function createMove1(e) {
 function createMove2(e) {
   e.preventDefault();
   const _tem_cloud = this._tem_cloud
-  const [x, y] = getXY(e);
+  const [x, y] = this.getXY(e);
   _tem_cloud.data.mark[0] = x;
   _tem_cloud.data.mark[1] = y;
   this.renderView(_tem_cloud);
@@ -243,11 +276,4 @@ function createMove2(e) {
 function getEventPage(e) {
   const page = e.target.closest(".page");
   return page;
-}
-function getXY(e) {
-  const page = getEventPage(e);
-  const rect = page.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
-  return [x, y];
 }

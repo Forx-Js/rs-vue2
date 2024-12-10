@@ -9,20 +9,26 @@
   )
   canvas.create(ref="canvas")
   button.btn(@click="createCloud") 添加
-  .list(v-for="cloud in clouds")
-    button(@click="clickHandler(cloud)") {{ cloud.data.strText }}
+  .list
+    button(
+      v-for="(cloud, index) in clouds",
+      :key="index",
+      @click="clickHandler(cloud)"
+    ) {{ cloud.data.strText }}
 </template>
 <script>
 import { onUnmounted, ref } from "vue";
 import { Cloud, PdfManager } from "./Cloud/index";
+import { min, max } from "lodash-es";
 export default {
   setup() {
     const canvas = ref(),
       iframe = ref();
     const clouds = ref([]);
     let manager = new PdfManager();
-    manager.onClouds((c) => {
-      clouds.value = [...c];
+    manager.onClouds(() => {
+      console.log(manager.clouds);
+      clouds.value = [...manager.clouds];
     });
     onUnmounted(() => {
       manager.destroy();
@@ -30,33 +36,44 @@ export default {
     function onFrameLoad() {
       manager.setIframe(iframe.value);
       manager.setCanvas(canvas.value);
-      const data = Cloud.data({
-        mark: [0.2, 0.2],
-        points: [0.1, 0.1, 0.3, 0.3],
-        index: 1,
-        lineWidth: 2,
-        type: 1,
-        color: 0xff0000,
-        strText: "99999999",
-      });
-      const cloud = new Cloud(data);
-      manager.add(cloud);
+      manager.add([
+        new Cloud(
+          Cloud.data({
+            mark: [0.2, 0.2],
+            points: [0.2, 0.1, 0.6, 0.125],
+            index: 1,
+            scale: 1,
+            type: 1,
+            strText: "99999999",
+          })
+        ),
+        new Cloud(
+          Cloud.data({
+            mark: [0.4, 0.65],
+            points: [0.3, 0.7, 0.35, 0.725],
+            index: 10,
+            scale: 5,
+            strText: "22222",
+          })
+        ),
+      ]);
     }
     async function clickHandler(cloud) {
-      manager.pdfViewer.scrollPageIntoView({ pageNumber: cloud.index });
+      manager.jump(cloud);
     }
+    let name = 1;
     async function createCloud() {
-      const a = manager.createCloud();
       // 准备阶段
-      const { value: cloud } = await a.next();
+      const a = manager.createCloud();
       // 确定框体位置
-      await a.next();
+      const { value: cloud } = await a.next();
       // 确定框体大小
-      cloud.data.strText = "6666";
       await a.next();
       // 确定文字位置
+      cloud.data.strText = name++ + "";
       await a.next();
       // 框体挂载完成，清理监听器
+      manager.add(cloud);
     }
     return {
       onFrameLoad,
@@ -105,7 +122,7 @@ iframe {
 }
 .list {
   position: fixed;
-  bottom: 0;
+  bottom: 50px;
   left: 0;
   right: 0;
   z-index: 1;
