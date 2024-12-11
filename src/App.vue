@@ -8,12 +8,14 @@
     @load="onFrameLoad"
   )
   .shadow-sm.border-1.transition-right.w-60.fixed.top-2.bottom-2.right--60.z-1.bg-white.p-2.rounded(
-    class="hover:right-0"
+    un-hover="right-0"
   )
     .bar.text-center.left--6.w-6.h-24.text-3.absolute.rounded-l.top-50.bg-blue-500
     .border-b-1.border-b-solid.border-gray.pb-2
-      button.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
-        class="hover:bg-blue",
+      button.bg-blue-500.rounded(
+        un-text="3 white",
+        un-p="x-3 y-1",
+        un-hover="bg-blue",
         @click="createCloud(1)"
       ) 添加云线
       //- button.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
