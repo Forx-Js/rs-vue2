@@ -13,6 +13,11 @@
  * limitations under the License.
  */
 
+.cloud-canvas{
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+}
 .dialog{
   --dialog-bg-color:white;
   --dialog-border-color:white;

@@ -10,7 +10,7 @@
  * @property {number} lineWidth 线宽
  */
 
-import { first, flatten, last, max, min, zip } from "lodash-es"
+import { chunk, first, flatten, last, max, min, zip } from "lodash-es"
 
 export class Cloud {
   /** @type {(data:CloudData)=>CloudData} */
@@ -86,7 +86,10 @@ export class Cloud {
       case 1:
         this.#drawCloudRect(path);
         break
-      default:
+      case 2:
+        this.#drawLine(path);
+        break
+      case 0: default:
         this.#drawRect(path)
         break
     }
@@ -221,6 +224,14 @@ export class Cloud {
       ...axis[1].map((y) => ({ x: first(axis[0]), y, r, s: rad * 3, e: rad * 5 })).reverse(),
     );
     return balls;
+  }
+  /**  @param {Path2D} path  */
+  #drawLine(path) {
+    const { points } = this.boxRect;
+    path.moveTo(points[0], points[1])
+    for (const [x, y] of chunk(points, 2)) {
+      path.lineTo(x, y)
+    }
   }
   // 绘制矩形框
   #drawRect(path) {

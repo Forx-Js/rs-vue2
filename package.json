@@ -10,6 +10,7 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "@unocss/reset": "^0.65.1",
     "lodash-es": "^4.17.21",
     "vue": "^2.7.16"
   },
@@ -19,7 +20,11 @@
     "@rsbuild/plugin-pug": "^1.0.2",
     "@rsbuild/plugin-sass": "^1.1.1",
     "@rsbuild/plugin-vue2": "^1.0.2",
-    "pug": "^3.0.3"
+    "@unocss/extractor-pug": "^0.65.1",
+    "@unocss/postcss": "^0.65.1",
+    "@unocss/preset-wind": "^0.65.1",
+    "pug": "^3.0.3",
+    "unocss": "^0.65.1"
   },
   "volta": {
     "node": "20.16.0",

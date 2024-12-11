@@ -42,12 +42,8 @@ export class PdfManager extends CloudManager {
     this.#onChange?.(this.clouds)
     this.renderView()
   }
-  renderView = throttle(() => {
-    this.renderPage();
-  }, 32, { trailing: true, leading: false })
-  #onPageScroll = () => {
-    this.renderView()
-  }
+  renderView = throttle(this.renderPage, 45, { leading: false, trailing: true })
+  #onPageScroll = () => this.renderView()
   hoverPoint = []
   baseCanvasMove = (e) => {
     if (!this.ctx || !this.visibleClouds.length) {
@@ -81,12 +77,16 @@ export class PdfManager extends CloudManager {
     const doc = iframe.contentDocument;
     const root = doc.querySelector("#viewerContainer");
     const viewer = doc.querySelector("#viewer");
+    this.setCanvas()
+    doc.body.appendChild(this.canvas);
     this.#size_obs.observe(root);
     this.#page_obs.observe(viewer, { childList: true });
     root.addEventListener("scroll", this.#onPageScroll);
     this.pageRootDom = root
   }
+  // 初始化观察器
   #initObs() {
+    // 实时更新增在视口的页面,避免渲染不必要的元素
     this.#scroll_obs = new IntersectionObserver((rectList) => {
       const activePage = this.#activePage
       for (const rect of rectList) {
@@ -98,6 +98,7 @@ export class PdfManager extends CloudManager {
       }
       this.renderView();
     });
+    // 当添加新页面时,可以直接更新
     this.#page_obs = new MutationObserver(() => {
       const pages = this.pageRootDom.querySelectorAll(".page");
       const scroll_obs = this.#scroll_obs
@@ -125,7 +126,7 @@ export class PdfManager extends CloudManager {
   getAllPage() {
     return [...this.pageRootDom.querySelectorAll(".page")];
   }
-  createCloud() {
+  create() {
     this.renderView();
     this.#removePageEvent();
     return this.createStep()
@@ -134,24 +135,51 @@ export class PdfManager extends CloudManager {
   async * createStep() {
     const pages = this.getAllPage();
     let e, x, y
-    e = await this.#addPageEvent(pages)
     const data = Cloud.data({ scale: 1 });
     const _tem_cloud = new Cloud(data);
+    const pointNum = yield _tem_cloud || 2;
     this._tem_cloud = _tem_cloud;
-    const page = getEventPage(e);
-    const index = ~~page.dataset.pageNumber;
+    let page, index;
+    e = await this.#addPageEvent(pages)
+    page = getEventPage(e);
+    index = ~~page.dataset.pageNumber;
     _tem_cloud.index = index;
     _tem_cloud.pageDom = page;
-    [x, y] = this.getXY(e);
-    _tem_cloud.data.points = [x, y, x, y];
-    yield _tem_cloud;
-    await this.#addPageEvent(page, createMove1);
-    yield _tem_cloud;
-    await this.#addPageEvent(page, createMove2);
+    if (pointNum > 0) {
+      [x, y] = this.getXY(e);
+      data.points.push(x, y);
+      this.renderView(_tem_cloud);
+    }
+    for (let i = 1; i < pointNum; i++) {
+      const length = data.points.length
+      await this.#addPageEvent(page, (e) => {
+        e.preventDefault();
+        [x, y] = this.getXY(e);
+        data.points[length] = x;
+        data.points[length + 1] = y;
+        this.renderView(_tem_cloud);
+      });
+    }
+    const markNum = yield _tem_cloud || 1;
+    for (let i = 0; i < markNum; i++) {
+      const length = data.mark.length;
+      await this.#addPageEvent(page, (e) => {
+        e.preventDefault();
+        const [x, y] = this.getXY(e);
+        data.mark[length] = x;
+        data.mark[length + 1] = y;
+        this.renderView(_tem_cloud);
+      });
+    }
     const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
     _tem_cloud.data.scale = pdf.viewport.scale;
     this._tem_cloud = null;
     return _tem_cloud
+  }
+  stopCreate() {
+    this._tem_cloud = null;
+    this.#removePageEvent();
+    this.renderView();
   }
   getXY(e) {
     const page = getEventPage(e);
@@ -197,12 +225,13 @@ export class PdfManager extends CloudManager {
     if (move) moveHandler = (e) => { move.call(this, e) }
     clickHandler = (e) => {
       move && move.call(this, e);
+      e.preventDefault();
       this.#removePageEvent()
       resolve(e)
     }
     for (const page of pages) {
       move && page.addEventListener("pointermove", moveHandler);
-      page.addEventListener("pointerdown", clickHandler);
+      page.addEventListener("pointerdown", clickHandler, { once: true });
     }
     return promise
   }
@@ -255,23 +284,6 @@ function withResolvers() {
   });
   const resolver = { promise, resolve, reject };
   return resolver;
-}
-/** @param {MouseEvent} e */
-function createMove1(e) {
-  e.preventDefault();
-  const [x, y] = this.getXY(e);
-  const _tem_cloud = this._tem_cloud
-  _tem_cloud.data.points[2] = x;
-  _tem_cloud.data.points[3] = y;
-  this.renderView(_tem_cloud);
-}
-function createMove2(e) {
-  e.preventDefault();
-  const _tem_cloud = this._tem_cloud
-  const [x, y] = this.getXY(e);
-  _tem_cloud.data.mark[0] = x;
-  _tem_cloud.data.mark[1] = y;
-  this.renderView(_tem_cloud);
 }
 function getEventPage(e) {
   const page = e.target.closest(".page");

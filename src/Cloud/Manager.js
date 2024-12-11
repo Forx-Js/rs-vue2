@@ -6,6 +6,7 @@ export class CloudManager {
   }
   setCanvas(canvas) {
     if (!canvas) canvas = document.createElement('canvas')
+    canvas.classList.add('cloud-canvas')
     this.canvas = canvas;
     return canvas
   }
