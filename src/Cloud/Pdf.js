@@ -1,8 +1,8 @@
-import { chunk, flatten, max, min, pullAll, throttle } from "lodash-es";
-import { CloudManager } from "./Manager";
-import { Cloud } from "./Box";
-let moveHandler, clickHandler;
-export class PdfManager extends CloudManager {
+import { chunk, flatten, max, min, } from "lodash-es";
+import Manager from "./Manager";
+import Box from "./Box";
+// import { DrawEvents } from "./DrawEvent";
+export default class PdfManager extends Manager {
   constructor() {
     super();
     this.#initObs();
@@ -12,9 +12,9 @@ export class PdfManager extends CloudManager {
   get pdfViewer() {
     return this.iframe.contentWindow?.PDFViewerApplication?.pdfViewer
   }
-  /** @type {Cloud[]} */
-  clouds = []
-  /** @type {Cloud[]} */
+  // /** @type {Box[]} */
+  // list = []
+  /** @type {Box[]} */
   visibleClouds = []
   #activePage = new Set()
   /** @type {IntersectionObserver} */
@@ -25,24 +25,6 @@ export class PdfManager extends CloudManager {
   #size_obs
   /** @type {HTMLDivElement} */
   pageRootDom
-  #onChange
-  onClouds(fn) {
-    this.#onChange = fn;
-  }
-  add(cloud) {
-    let tem = cloud ? [].concat(cloud).filter(f => f instanceof Cloud) : []
-    if (!cloud) return
-    this.clouds.push(...tem);
-    this.#onChange?.(this.clouds)
-    this.renderView()
-  }
-  clear(cloud) {
-    let tem = cloud ? [].concat(cloud) : this.clouds
-    pullAll(this.clouds, tem)
-    this.#onChange?.(this.clouds)
-    this.renderView()
-  }
-  renderView = throttle(this.renderPage, 45, { leading: false, trailing: true })
   #onPageScroll = () => this.renderView()
   hoverPoint = []
   baseCanvasMove = (e) => {
@@ -53,11 +35,11 @@ export class PdfManager extends CloudManager {
     }
     this.renderView()
   }
-  renderPage() {
+  renderFn() {
     const visibleClouds = [];
-    const clouds = this.clouds
+    const clouds = this.list
     const activePage = this.#activePage
-    const _tem_cloud = this._tem_cloud;
+    const _tem_cloud = this._tem_box;
     for (const page of activePage) {
       const index = ~~page.dataset.pageNumber;
       for (const cloud of clouds) {
@@ -126,60 +108,37 @@ export class PdfManager extends CloudManager {
   getAllPage() {
     return [...this.pageRootDom.querySelectorAll(".page")];
   }
-  create() {
+  /** @param {Box} box   */
+  async create(box, ...arg) {
     this.renderView();
-    this.#removePageEvent();
-    return this.createStep()
+    this._tem_box = box;
+    box.manager = this;
+    this.pageRootDom.style.touchAction = 'none'
+    try {
+      await box.create(...arg)
+    } finally {
+      this.pageRootDom.style.removeProperty('touch-action')
+    }
+    const pdf = this.pdfViewer ? this.pdfViewer._pages[box.index - 1] : {};
+    box.data.scale = pdf.viewport.scale;
+    if (this._tem_box === box) {
+      this._tem_box = null;
+    }
   }
-  /** 异步方法 */
-  async * createStep() {
-    const pages = this.getAllPage();
-    let e, x, y
-    const data = Cloud.data({ scale: 1 });
-    const _tem_cloud = new Cloud(data);
-    const pointNum = yield _tem_cloud || 2;
-    this._tem_cloud = _tem_cloud;
-    let page, index;
-    e = await this.#addPageEvent(pages)
-    page = getEventPage(e);
-    index = ~~page.dataset.pageNumber;
-    _tem_cloud.index = index;
-    _tem_cloud.pageDom = page;
-    if (pointNum > 0) {
-      [x, y] = this.getXY(e);
-      data.points.push(x, y);
-      this.renderView(_tem_cloud);
+  getEventData(e) {
+    const el = getEventPage(e);
+    const index = ~~el.dataset.pageNumber
+    return {
+      e: e,
+      index,
+      el,
+      point: this.getXY(e)
     }
-    for (let i = 1; i < pointNum; i++) {
-      const length = data.points.length
-      await this.#addPageEvent(page, (e) => {
-        e.preventDefault();
-        [x, y] = this.getXY(e);
-        data.points[length] = x;
-        data.points[length + 1] = y;
-        this.renderView(_tem_cloud);
-      });
-    }
-    const markNum = yield _tem_cloud || 1;
-    for (let i = 0; i < markNum; i++) {
-      const length = data.mark.length;
-      await this.#addPageEvent(page, (e) => {
-        e.preventDefault();
-        const [x, y] = this.getXY(e);
-        data.mark[length] = x;
-        data.mark[length + 1] = y;
-        this.renderView(_tem_cloud);
-      });
-    }
-    const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
-    _tem_cloud.data.scale = pdf.viewport.scale;
-    this._tem_cloud = null;
-    return _tem_cloud
   }
   stopCreate() {
-    this._tem_cloud = null;
-    this.#removePageEvent();
+    this._tem_box = null;
     this.renderView();
+    this.pageEvents.clear();
   }
   getXY(e) {
     const page = getEventPage(e);
@@ -200,7 +159,7 @@ export class PdfManager extends CloudManager {
     if (ky) xy[1] = 1 - xy[1]
     return xy
   }
-  /** @param {Cloud} cloud */
+  /** @param {Box} cloud */
   _transform(cloud) {
     const { data: _data, index } = cloud
     const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
@@ -212,35 +171,6 @@ export class PdfManager extends CloudManager {
     data.points = flatten(chunk(_data.points, 2).map(xy => this.getRotateXY(xy, pdf.viewport.rotation)))
     data.mark = this.getRotateXY([..._data.mark], pdf.viewport.rotation)
     return data
-  }
-  /** 
-   * @description 给dom添加点击事件,并返回一个promise,限制到点击事件第一次触发
-   * @param {HTMLDivElement|HTMLDivElement[]} page
-   * @param {(e:MouseEvent)=>void} move
-   **/
-  #addPageEvent(page, move) {
-    /**  @type {HTMLDivElement[]} */
-    const pages = [].concat(page);
-    const { resolve, promise } = withResolvers()
-    if (move) moveHandler = (e) => { move.call(this, e) }
-    clickHandler = (e) => {
-      move && move.call(this, e);
-      e.preventDefault();
-      this.#removePageEvent()
-      resolve(e)
-    }
-    for (const page of pages) {
-      move && page.addEventListener("pointermove", moveHandler);
-      page.addEventListener("pointerdown", clickHandler, { once: true });
-    }
-    return promise
-  }
-  #removePageEvent() {
-    const pages = this.getAllPage();
-    for (const page of pages) {
-      page.removeEventListener('pointermove', moveHandler);
-      page.removeEventListener("pointerdown", clickHandler);
-    }
   }
   jump(cloud) {
     const { pdfViewer, canvas } = this;
@@ -263,27 +193,12 @@ export class PdfManager extends CloudManager {
     pdfViewer.container.scrollTo({ left, top });
   }
   destroy() {
-    this.#removePageEvent();
-    this._tem_cloud = null
-    this.clear()
     this.#scroll_obs.disconnect();
     this.#page_obs.disconnect();
     this.#size_obs.disconnect();
     this.pageRootDom.removeEventListener("scroll", this.#onPageScroll);
+    super.destroy();
   }
-}
-/**
- * @description 同 {Promise.withResolvers}
- * @returns {{ promise: Promise, resolve: (value: any) => void, reject:(reason?: any) => void }}
- */
-function withResolvers() {
-  let resolve, reject;
-  const promise = new Promise((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  const resolver = { promise, resolve, reject };
-  return resolver;
 }
 function getEventPage(e) {
   const page = e.target.closest(".page");

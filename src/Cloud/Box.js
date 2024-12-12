@@ -1,5 +1,5 @@
 /**
- * @typedef CloudData
+ * @typedef BoxData
  * @property {number} index 页码
  * @property {string} strText 文本内容
  * @property {[number,number,number,number]} points 矩形坐标数组 
@@ -10,10 +10,10 @@
  * @property {number} lineWidth 线宽
  */
 
-import { chunk, first, flatten, last, max, min, zip } from "lodash-es"
+import { flatten, max, min, zip } from "lodash-es"
 
-export class Cloud {
-  /** @type {(data:CloudData)=>CloudData} */
+export default class Box {
+  /** @type {(data:BoxData)=>BoxData} */
   static data(data = {}) {
     return {
       index: 0,
@@ -21,8 +21,8 @@ export class Cloud {
       points: [],
       mark: [],
       color: 0xff0000,
+      type: void 0,
       textHeight: 16, // 字高
-      type: 1,
       lineWidth: 2,
       ...data
     }
@@ -33,31 +33,26 @@ export class Cloud {
   set index(value) {
     this.data.index = ~~value
   }
-  /** @type {CloudData} */
+  constructor(data) {
+    this.data = data;
+  }
+  /** @type {BoxData} */
   data = {}
   /** @type {DOMRect} */
   pageRect
-  _pdf_viewport = {}
   setPageRect() {
     const { pageDom } = this;
     this.pageRect = pageDom ? pageDom.getBoundingClientRect() : void 0;
   }
   /** @type {HTMLDivElement} */
   pageDom
-  /**
-   * @param {CloudData} data 
-   */
-  constructor(data) {
-    if (!data) throw new Error('data is required')
-    this.data = data
-  }
+  /**  @param {BoxData} data */
   /** @type {CanvasRenderingContext2D} */
   #ctx;
-  /** @type {import('./Manager').CloudManager } */
+  /** @type {import('./Manager').default } */
   manager
-  /** @param {import('./Manager').CloudManager } manager */
-  render(manager) {
-    this.manager = manager;
+  render() {
+    const manager = this.manager;
     const ctx = manager.ctx;
     this.setPageRect()
     if (!ctx || !this.pageRect) return;
@@ -70,29 +65,15 @@ export class Cloud {
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = lineWidth;
-    const path = this.#getBoxPath();
+    const path = this.setBoxPath();
     this.#renderBox(path);
     this.#renderMark(path)
     ctx.restore();
   }
   /** @type {Path2D}  */
   boxPath
-  #getBoxPath() {
-    const { data: { points, type } } = this;
-    const isSetPoint = !!points.length
+  setBoxPath() {
     const path = new Path2D()
-    if (!isSetPoint) return path
-    switch (type) {
-      case 1:
-        this.#drawCloudRect(path);
-        break
-      case 2:
-        this.#drawLine(path);
-        break
-      case 0: default:
-        this.#drawRect(path)
-        break
-    }
     this.boxPath = path;
     return path
   }
@@ -186,56 +167,5 @@ export class Cloud {
     this.boxRect = rect;
     return this.boxRect;
   }
-  // 绘制云线框
-  /**  @param {Path2D} path  */
-  #drawCloudRect(path) {
-    const list = this.#getBoxCell();
-    for (let i = 0; i < list.length; i++) {
-      const { x, y, r, s, e } = list[i];
-      path.arc(x, y, r, s, e);
-    }
-    return path
-  }
-  // 计算云线波浪线
-  #getBoxCell() {
-    const { x1, y1, x2, y2 } = this.boxRect;
-    const w = x2 - x1;
-    const h = y2 - y1;
-    const maxSize = Math.max(w, h);
-    const r = Math.max(maxSize >> 3, 10)
-    const l = r * Math.SQRT2;
-    const axis = [[], []];
-    const balls = [];
-    let _w = x1,
-      _h = y1;
-    while (_w < x2) {
-      _w += l;
-      axis[0].push(_w - r);
-    }
-    while (_h < y2) {
-      _h += l;
-      axis[1].push(_h - r);
-    }
-    const rad = Math.PI / 4
-    balls.push(
-      ...axis[0].map((x) => ({ x, y: first(axis[1]), r, s: 5 * rad, e: 7 * rad })),
-      ...axis[1].map((y) => ({ x: last(axis[0]), y, r, s: -rad, e: rad })),
-      ...axis[0].map((x) => ({ x, y: last(axis[1]), r, s: rad, e: rad * 3 })).reverse(),
-      ...axis[1].map((y) => ({ x: first(axis[0]), y, r, s: rad * 3, e: rad * 5 })).reverse(),
-    );
-    return balls;
-  }
-  /**  @param {Path2D} path  */
-  #drawLine(path) {
-    const { points } = this.boxRect;
-    path.moveTo(points[0], points[1])
-    for (const [x, y] of chunk(points, 2)) {
-      path.lineTo(x, y)
-    }
-  }
-  // 绘制矩形框
-  #drawRect(path) {
-    const { x1, y1, x2, y2 } = this.boxRect;
-    path.rect(x1, y1, x2 - x1, y2 - y1);
-  }
+  async create() { }
 }
