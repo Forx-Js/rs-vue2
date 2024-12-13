@@ -1,8 +1,7 @@
 import { chunk, flatten, max, min, } from "lodash-es";
-import Manager from "./Manager";
-import Box from "./Box";
-// import { DrawEvents } from "./DrawEvent";
-export default class PdfManager extends Manager {
+import { Manager } from "./Manager";
+import { Box } from "./Box";
+export class PdfManager extends Manager {
   constructor() {
     super();
     this.#initObs();
@@ -26,20 +25,11 @@ export default class PdfManager extends Manager {
   /** @type {HTMLDivElement} */
   pageRootDom
   #onPageScroll = () => this.renderView()
-  hoverPoint = []
-  baseCanvasMove = (e) => {
-    if (!this.ctx || !this.visibleClouds.length) {
-      this.hoverPoint = []
-    } else {
-      this.hoverPoint = this.getXY(e);
-    }
-    this.renderView()
-  }
   renderFn() {
-    const visibleClouds = [];
     const clouds = this.list
+    const visibleClouds = [];
     const activePage = this.#activePage
-    const _tem_cloud = this._tem_box;
+    const __tem = this._tem_box;
     for (const page of activePage) {
       const index = ~~page.dataset.pageNumber;
       for (const cloud of clouds) {
@@ -48,8 +38,7 @@ export default class PdfManager extends Manager {
           visibleClouds.push(cloud);
         }
       }
-      if (_tem_cloud && _tem_cloud.index === index)
-        visibleClouds.push(_tem_cloud);
+      if (__tem && __tem.index === index) visibleClouds.push(__tem);
     }
     this.visibleClouds = visibleClouds;
     this.render(visibleClouds);
@@ -64,7 +53,18 @@ export default class PdfManager extends Manager {
     this.#size_obs.observe(root);
     this.#page_obs.observe(viewer, { childList: true });
     root.addEventListener("scroll", this.#onPageScroll);
+    root.addEventListener("contextmenu", this.#onContextmenu);
     this.pageRootDom = root
+  }
+  baseCanvasMove = (e) => {
+    const { ctx, visibleClouds } = this
+    if (!ctx || !visibleClouds.length) {
+      this.mousePoint = []
+    } else {
+      const point = this.getXY(e);
+      this.mousePoint = point;
+      this.renderView()
+    }
   }
   // 初始化观察器
   #initObs() {
@@ -166,11 +166,14 @@ export default class PdfManager extends Manager {
     const data = {
       ..._data,
       points: [],
-      mark: []
+      mark: [],
     }
     data.points = flatten(chunk(_data.points, 2).map(xy => this.getRotateXY(xy, pdf.viewport.rotation)))
     data.mark = this.getRotateXY([..._data.mark], pdf.viewport.rotation)
     return data
+  }
+  #onContextmenu(e) {
+    e.preventDefault();
   }
   jump(cloud) {
     const { pdfViewer, canvas } = this;

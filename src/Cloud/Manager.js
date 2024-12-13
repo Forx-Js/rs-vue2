@@ -1,8 +1,8 @@
 import { pullAll, throttle } from "lodash-es"
-import Box from "./Box";
-import DrawEvents from "./DrawEvent";
+import {Box} from "./Box";
+import {DrawEvents} from "./DrawEvent";
 
-export default class Manager {
+export class Manager {
   /** @type {Box[]} */
   list = []
   #onChange;
@@ -43,7 +43,7 @@ export default class Manager {
   clear(box) {
     let list = box ? [].concat(box) : this.list;
     pullAll(this.list, list)
-    this.renderView()
+    this.renderView();
     for (const box of list) box.manager = null
     this.#onChange?.(list)
   }
@@ -64,6 +64,5 @@ export default class Manager {
   getEventData(e) {
     return { e, index: 1, point: this.getXY(e), el: e.target }
   }
-  async afterCreateHook() { }
-  async beforeCreateHook() { }
+  mousePoint = []
 } 

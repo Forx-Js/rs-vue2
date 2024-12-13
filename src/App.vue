@@ -10,22 +10,47 @@
   .shadow-sm.border-1.transition-right.w-60.fixed.top-2.bottom-2.right--60.z-1.bg-white.p-2.rounded(
     un-hover="right-0"
   )
-    .bar.text-center.left--6.w-6.h-24.text-3.absolute.rounded-l.top-50.bg-blue-500
+    .bar(
+      un-text="center 3",
+      un-absolute,
+      un-left="-6",
+      un-w="6",
+      un-h="24",
+      un-top="50",
+      un-rounded="l",
+      un-bg="blue-800"
+    )
     .border-b-1.border-b-solid.border-gray.pb-2
-      button.bg-blue-500.rounded(
+      button.mr-1.mt-1.bg-blue-500.rounded(
         un-text="3 white",
         un-p="x-3 y-1",
         un-hover="bg-blue",
         @click="createCloud()"
       ) 添加云线
-      button.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
         class="hover:bg-blue",
         @click="createRect()"
       ) 添加矩形
-      button.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
         class="hover:bg-blue",
         @click="createLine()"
-      ) 添加折线
+      ) 添加线
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+        class="hover:bg-blue",
+        @click="createArrow()"
+      ) 添加箭头
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+        class="hover:bg-blue",
+        @click="createPencil()"
+      ) 添加画笔
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+        class="hover:bg-blue",
+        @click="createCircle()"
+      ) 添加圆
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+        class="hover:bg-blue",
+        @click="createText()"
+      ) 添加文本
     ul.divide-y
       li.px-2.py-1.select-none(
         v-for="(cloud, index) in clouds",
@@ -36,7 +61,17 @@
 </template>
 <script>
 import { onUnmounted, ref } from "vue";
-import { CloudBox, LineBox, PdfManager, RectBox, Utils } from "./Cloud/index";
+import {
+  ArrowBox,
+  CircleBox,
+  CloudBox,
+  LineBox,
+  PdfManager,
+  PencilBox,
+  RectBox,
+  TextBox,
+  Utils,
+} from "./Cloud";
 export default {
   setup() {
     const canvas = ref(),
@@ -67,6 +102,13 @@ export default {
           color: 0x0000ff,
           strText: "22222",
         }),
+         new ArrowBox({
+          points: [0.3, 0.7, 0.35, 0.725],
+          index: 1,
+          scale: 5,
+          color: 0x0000ff,
+          strText: "22222",
+        }),
       ]);
     }
     async function clickHandler(cloud) {
@@ -91,7 +133,34 @@ export default {
       await manager.create(box);
       manager.add(box);
     }
+    async function createPencil() {
+      const box = new PencilBox();
+      console.log(box);
+      await manager.create(box);
+      manager.add(box);
+    }
+    async function createCircle() {
+      const box = new CircleBox();
+      await manager.create(box);
+      manager.add(box);
+    }
+    async function createArrow() {
+      const box = new ArrowBox();
+      await manager.create(box);
+      manager.add(box);
+    }
+    async function createText() {
+      const box = new TextBox();
+      box.data.strText = window.prompt("请输入文本");
+      box.data.textHeight = 30;
+      await manager.create(box);
+      manager.add(box);
+    }
     return {
+      createArrow,
+      createText,
+      createCircle,
+      createPencil,
       createRect,
       createLine,
       onFrameLoad,

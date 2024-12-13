@@ -1,7 +1,7 @@
 import { concat, union } from "lodash-es";
-import Utils from "./utils";
+import {Utils} from "./utils";
 
-export default class DrawEvents {
+export class DrawEvents {
   controller = new AbortController();
   resolver = Utils.withResolvers()
   constructor(manager) {
