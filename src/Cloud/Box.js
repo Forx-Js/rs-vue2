@@ -125,8 +125,6 @@ export class Box {
       cy = y1 + ((y2 - y1) >> 1);
     const markX = mx * width + left, markY = my * height + top;
     const points = zip(points_x, points_y)
-    // const mouse = this.manager.mousePoint;
-    // const mousePoint = mouse.length ? [mouse[0] * width + left, mouse[1] * height + top] : []
     const rect = { width, height, left, top, points, x1, y1, x2, y2, cx, cy, markX, markY, mousePoint: [] };
     this.boxRect = rect;
     return this.boxRect;

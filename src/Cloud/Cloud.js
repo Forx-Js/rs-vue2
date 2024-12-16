@@ -46,7 +46,6 @@ export class CloudBox extends Box {
     ctx.restore();
     this.#renderMarkLine(path)
     ctx.stroke(path);
-    console.log(path);
   }
   /** @param {Path2D} path  */
   #renderMarkLine(path) {
@@ -60,26 +59,14 @@ export class CloudBox extends Box {
     const lineWidth = this.data.lineWidth;
     lPath.rect(x1 - lineWidth, y1 - lineWidth, x2 - x1 + lineWidth * 2, y2 - y1 + lineWidth * 2)
     ctx.clip(lPath, 'evenodd')
+    ctx.beginPath();
     ctx.moveTo(boxRect.markX, boxRect.markY);
     if (ctx.isPointInPath(path, boxRect.markX, boxRect.markY)) {
-      // 计算延长线
       const dy = boxRect.markY - boxRect.cy;
       const dx = boxRect.markX - boxRect.cx;
-      if (Math.abs(dx) < 0.1) {
-        const k = dy > 0 ? 1 : -1
-        const l = (100 + boxRect.height) * k
-        ctx.lineTo(boxRect.cx, boxRect.cy + l);
-      } else if (Math.abs(dy) < 0.1) {
-        const k = dx > 0 ? 1 : -1
-        const l = (100 + boxRect.width) * k
-        ctx.lineTo(boxRect.cx + l, boxRect.cy);
-      } else {
-        const k = dy / dx;
-        const d = dx < 0 ? -1 : 1
-        const x = boxRect.width * d;
-        const y = x * k;
-        ctx.lineTo(boxRect.cx + x, boxRect.cy + y);
-      }
+      const angle = Math.atan2(dy, dx);
+      const radius = (boxRect.width ** 2 + boxRect.height ** 2) ** .5 / 2;
+      ctx.arc(boxRect.cx, boxRect.cy, radius, angle, angle, true)
     } else {
       ctx.lineTo(boxRect.cx, boxRect.cy);
     }

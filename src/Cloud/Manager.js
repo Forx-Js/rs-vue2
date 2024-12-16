@@ -1,6 +1,6 @@
 import { pullAll, throttle } from "lodash-es"
-import {Box} from "./Box";
-import {DrawEvents} from "./DrawEvent";
+import { Box } from "./Box";
+import { DrawEvents } from "./DrawEvent";
 
 export class Manager {
   /** @type {Box[]} */
@@ -24,9 +24,9 @@ export class Manager {
     return canvas
   }
   render(boxList) {
-    const { ctx, canvas } = this;
+    const { ctx } = this;
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.reset();
     for (const box of boxList)
       box.render();
   }
