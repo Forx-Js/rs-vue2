@@ -1,4 +1,4 @@
-import { first, last } from "lodash-es";
+import { add, clamp, first, flatten, inRange, last } from "lodash-es";
 import { Utils } from "./utils";
 import { Box } from "./Box";
 export class CloudBox extends Box {
@@ -6,7 +6,7 @@ export class CloudBox extends Box {
   // 计算云线波浪线
   #getBoxCell() {
     const { x1, y1, x2, y2 } = this.boxRect;
-    const r = 10;
+    const r = 12;
     const l = r * Math.SQRT2;
     const axis = [[], []];
     const balls = [];
@@ -22,67 +22,75 @@ export class CloudBox extends Box {
     }
     const rad = Math.PI / 4
     balls.push(
-      ...axis[0].map((x) => ({ x, y: first(axis[1]), r, s: 5 * rad, e: 7 * rad })),
-      ...axis[1].map((y) => ({ x: last(axis[0]), y, r, s: -rad, e: rad })),
-      ...axis[0].map((x) => ({ x, y: last(axis[1]), r, s: rad, e: rad * 3 })).reverse(),
-      ...axis[1].map((y) => ({ x: first(axis[0]), y, r, s: rad * 3, e: rad * 5 })).reverse(),
-    );
-    return balls;
+      axis[0].map((x) => ({ x, y: first(axis[1]), r, s: 5 * rad, e: 7 * rad })),
+      axis[1].map((y) => ({ x: last(axis[0]), y, r, s: 7 * rad, e: 9 * rad })),
+      axis[0].map((x) => ({ x, y: last(axis[1]), r, s: rad, e: rad * 3 })).reverse(),
+      axis[1].map((y) => ({ x: first(axis[0]), y, r, s: rad * 3, e: 5 * rad })).reverse(),
+    )
+    for (let i = 0; i < balls.length; i++) {
+      const list = balls[i];
+      const del = list.pop();
+      const next = balls[(i + 1) % balls.length][0];
+      next.s = del.s
+    }
+    return flatten(balls)
   }
   setBoxPath() {
     const path = new Path2D()
-    const { boxRect: { points } } = this;
-    if (!points.length) return path
+    const { boxRect: { points, markX, markY } } = this;
+    if (!points.length) return path;
     const list = this.#getBoxCell();
     for (let i = 0; i < list.length; i++) {
       const { x, y, r, s, e } = list[i];
       path.arc(x, y, r, s, e);
+    }
+    path.closePath();
+    if (this.data.mark.length) {
+      const path2 = new Path2D();
+      const rand = { index: -1, diff: 0 }
+      const balls = list
+      for (let i = 0; i < balls.length; i++) {
+        const { x, y } = list[i];
+        const diff = add(Math.abs(x - markX), Math.abs(y - markY));
+        if (i === 0 || diff < rand.diff) {
+          rand.index = i;
+          rand.diff = diff;
+        }
+      }
+      const { x, y, r, e, s } = balls[rand.index]
+      const mRad = Math.atan2(markY - y, markX - x)
+      const a_rad = isBetweenRadians(mRad, s, e) ? mRad : (mRad + Math.PI);
+      path2.arc(x, y, r, a_rad, a_rad);
+      path2.lineTo(markX, markY)
+      path.addPath(path2);
     }
     this.boxPath = path;
     return path
   }
   create = Utils.dblPointHandler
 }
+const getRad = rad => {
+  return rad > (Math.PI / 4) ? rad : (rad + 2 * Math.PI)
+}
+function normalizeRadians(radian) {
+  // 将弧度值归一化到 [0, 2π) 范围内
+  return ((radian % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+}
+function isBetweenRadians(rad, start, end) {
+  start = normalizeRadians(start);
+  end = normalizeRadians(end);
+  rad = normalizeRadians(rad);
+  // 如果 a <= b, 那么c应该在a和b之间
+  if (start <= end) {
+    return rad >= start && rad <= end;
+  }
+  // 如果 a > b, 那么c应该在a和2π之间或者0和b之间
+  else {
+    return rad >= start || rad <= end;
+  }
+}
 export class CloudMark extends CloudBox {
   type = Utils.BoxTypeEnum.cloudMark;
-  /** @param {Path2D} path  */
-  _renderBox(path) {
-    const { data: { points }, _ctx: ctx } = this;
-    const isSetPoint = !!points.length
-    if (!isSetPoint) return
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out'
-    ctx.fill(path);
-    ctx.restore();
-    this.#renderMarkLine(path)
-    ctx.stroke(path);
-  }
-  /** @param {Path2D} path  */
-  #renderMarkLine(path) {
-    const { boxRect, _ctx: ctx } = this;
-    const lPath = new Path2D();
-    lPath.addPath(path);
-    const [x1, x2] = [boxRect.cx, boxRect.markX].sort((a, b) => a - b);
-    const [y1, y2] = [boxRect.cy, boxRect.markY].sort((a, b) => a - b);
-    ctx.save();
-    // 隐藏中心到标记的线
-    const lineWidth = this.data.lineWidth;
-    lPath.rect(x1 - lineWidth, y1 - lineWidth, x2 - x1 + lineWidth * 2, y2 - y1 + lineWidth * 2)
-    ctx.clip(lPath, 'evenodd')
-    ctx.beginPath();
-    ctx.moveTo(boxRect.markX, boxRect.markY);
-    if (ctx.isPointInPath(path, boxRect.markX, boxRect.markY)) {
-      const dy = boxRect.markY - boxRect.cy;
-      const dx = boxRect.markX - boxRect.cx;
-      const angle = Math.atan2(dy, dx);
-      const radius = (boxRect.width ** 2 + boxRect.height ** 2) ** .5 / 2;
-      ctx.arc(boxRect.cx, boxRect.cy, radius, angle, angle, true)
-    } else {
-      ctx.lineTo(boxRect.cx, boxRect.cy);
-    }
-    ctx.stroke();
-    ctx.restore()
-  }
   /**
   * @param {(type:string,time:number)=>Promise} handler 
   */

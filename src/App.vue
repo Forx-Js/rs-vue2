@@ -100,6 +100,7 @@ export default {
           points: [0.2, 0.1, 0.6, 0.125],
           index: 1,
           scale: 1,
+          lineWidth: 1,
           strText: "99999999",
         }),
         new CloudMark({
