@@ -15,18 +15,13 @@ export class DrawEvents {
    *   */
   update(el, eventName, handler = {}, caller) {
     /** @type {Element[]}*/
-    this.clear()
+    this.clear();
     const els = concat(el);
     const mainNames = concat(eventName);
     const eventNames = union(Object.keys(handler), mainNames);
     const controller = new AbortController();
     const resolver = Utils.withResolvers();
-    resolver.promise.catch(() => { })
-    resolver.promise.finally(() => {
-      this.controller = null
-      this.resolver = null;
-      controller.abort();
-    })
+    resolver.promise.finally(() => { controller.abort(); })
     const fns = eventNames.map((name) => {
       const isMain = mainNames.indexOf(name) > -1
       return [
@@ -42,11 +37,10 @@ export class DrawEvents {
     for (const el of els)
       for (const [name, fn] of fns)
         el.addEventListener(name, fn, { signal: controller.signal, capture: true });
-    this.controller = controller
-    this.resolver = resolver
-    return resolver.promise
+    this.controller = controller;
+    this.resolver = resolver;
+    this.clear = () => { resolver.reject('create event abort') }
+    return resolver.promise;
   }
-  clear() {
-    this.resolver && this.resolver.reject('create event abort')
-  }
+  clear() { }
 }

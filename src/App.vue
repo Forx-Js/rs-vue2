@@ -21,6 +21,7 @@
       un-bg="blue-800"
     )
     .border-b-1.border-b-solid.border-gray.pb-2
+      input(type="checkbox", v-model="isContinuous")
       button.mr-1.mt-1.bg-blue-500.rounded(
         un-text="3 white",
         un-p="x-3 y-1",
@@ -81,8 +82,8 @@ import {
 } from "./Cloud";
 export default {
   setup() {
-    const canvas = ref(),
-      iframe = ref();
+    const isContinuous = ref(false);
+    const iframe = ref();
     const clouds = ref([]);
     let manager = new PdfManager();
     manager.onChange(() => {
@@ -127,7 +128,6 @@ export default {
     }
     async function createCloudMark() {
       const box = new CloudMark();
-      console.log(box);
       await manager.create(box, (type) => {
         if (type === Utils.EventTypeEnum.MARK) box.data.strText = "strText";
       });
@@ -146,10 +146,11 @@ export default {
       manager.add(box);
     }
     async function createPencil() {
-      const box = new PencilBox();
-      console.log(box);
-      await manager.create(box);
-      manager.add(box);
+      do {
+        const box = new PencilBox();
+        await manager.create(box);
+        manager.add(box);
+      } while (isContinuous.value);
     }
     async function createCircle() {
       const box = new CircleBox();
@@ -178,7 +179,7 @@ export default {
       onFrameLoad,
       createCloudMark,
       createCloud,
-      canvas,
+      isContinuous,
       iframe,
       clouds,
       clickHandler,

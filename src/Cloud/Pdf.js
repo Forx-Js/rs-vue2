@@ -38,7 +38,7 @@ export class PdfManager extends Manager {
       }
       if (__tem && __tem.index === index) visibleClouds.push(__tem);
     }
-    this.visibleClouds = visibleClouds;
+    this.visibleClouds = visibleClouds.filter(b => b.visible);
     this.render(visibleClouds);
   }
   setIframe(iframe) {

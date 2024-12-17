@@ -56,6 +56,7 @@ export class Box {
   /** @type {import('./Manager').Manager } */
   manager
   isHover = false
+  visible = true
   render() {
     const manager = this.manager;
     const ctx = manager.ctx;
