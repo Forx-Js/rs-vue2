@@ -12,7 +12,7 @@
 
 import { partition } from "lodash-es";
 import { max, min, zip } from "lodash-es"
-
+// 批注类基类
 export class Box {
   type
   /** @type {(data:BoxData)=>BoxData} */
@@ -29,6 +29,7 @@ export class Box {
       ...data
     }
   }
+  // 页码 - 针对多页面批注
   get index() {
     return this.data.index
   }
@@ -58,8 +59,11 @@ export class Box {
   isHover = false
   visible = true
   render() {
+    // 非显示时跳过渲染
+    if (!this.visible) return
     const manager = this.manager;
     const ctx = manager.ctx;
+    // 获取背景位置信息
     this.setPageRect()
     if (!ctx || !this.pageRect) return;
     this._ctx = ctx;
@@ -72,12 +76,15 @@ export class Box {
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = lineWidth;
+    // 绘制框体
     this._renderBox(path);
+    // 绘制文本
     this._renderMark(path)
     ctx.restore();
   }
   /** @type {Path2D}  */
   boxPath
+  // 计算框体路径信息,供后续绘制使用
   setBoxPath() {
     const path = new Path2D()
     this.boxPath = path;
@@ -90,6 +97,7 @@ export class Box {
     const ctx = this._ctx;
     ctx.stroke(path);
   }
+  // 根据渲染环境,计算坐标
   _transform() {
     return this.manager._transform(this)
   }
@@ -110,6 +118,7 @@ export class Box {
     mousePoint: [],
     points: []
   }
+  // 获取框体坐标
   getBoxRect() {
     const { points: _points, mark: [mx, my] } = this._transform()
     const pageRect = this.pageRect;
