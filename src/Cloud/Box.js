@@ -14,6 +14,7 @@ import { partition } from "lodash-es";
 import { max, min, zip } from "lodash-es"
 
 export class Box {
+  type
   /** @type {(data:BoxData)=>BoxData} */
   static data(data = {}) {
     return {
@@ -34,7 +35,9 @@ export class Box {
   set index(value) {
     this.data.index = ~~value
   }
-  constructor(data) {
+  constructor(opt) {
+    const data = this.constructor.data(opt)
+    data.type = this.type
     this.data = data;
   }
   /** @type {BoxData} */

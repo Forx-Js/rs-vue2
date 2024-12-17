@@ -1,13 +1,7 @@
 import { Box } from "./Box";
-import {Utils} from "./utils";
+import { Utils } from "./utils";
 export class PencilBox extends Box {
-  static type = Utils.BoxTypeEnum.pencil;
-  /**  @param {BoxData} data */
-  constructor(data) {
-    const d = PencilBox.data(data);
-    d.type = PencilBox.type;
-    super(d);
-  }
+  type = Utils.BoxTypeEnum.pencil;
   setBoxPath() {
     const path = new Path2D()
     const { points } = this.boxRect;
@@ -20,7 +14,7 @@ export class PencilBox extends Box {
   /**
    * @param {(type:string,time:number)=>Promise} handler
    */
-  async create(handler = () => {}) {
+  async create(handler = () => { }) {
     const { manager, data } = this;
     const pages = manager.getAllPage();
     let e;
@@ -37,7 +31,7 @@ export class PencilBox extends Box {
     const { el, index } = manager.getEventData(e);
     this.pageDom = el;
     this.index = index;
-    e = await manager._events.update(el, "pointerup", {pointermove: moveHandler,});
+    e = await manager._events.update(el, "pointerup", { pointermove: moveHandler, });
     handler(Utils.EventTypeEnum.DONE, 0);
   }
 }

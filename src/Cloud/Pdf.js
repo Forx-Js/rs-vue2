@@ -11,8 +11,6 @@ export class PdfManager extends Manager {
   get pdfViewer() {
     return this.iframe.contentWindow?.PDFViewerApplication?.pdfViewer
   }
-  // /** @type {Box[]} */
-  // list = []
   /** @type {Box[]} */
   visibleClouds = []
   #activePage = new Set()
@@ -134,11 +132,6 @@ export class PdfManager extends Manager {
       el,
       point: this.getXY(e)
     }
-  }
-  stopCreate() {
-    this._tem_box = null;
-    this.renderView();
-    this.pageEvents.clear();
   }
   getXY(e) {
     const page = getEventPage(e);

@@ -1,9 +1,9 @@
 import { concat, union } from "lodash-es";
-import {Utils} from "./utils";
+import { Utils } from "./utils";
 
 export class DrawEvents {
-  controller = new AbortController();
-  resolver = Utils.withResolvers()
+  controller
+  resolver
   constructor(manager) {
     this.manager = manager;
   }
@@ -21,7 +21,12 @@ export class DrawEvents {
     const eventNames = union(Object.keys(handler), mainNames);
     const controller = new AbortController();
     const resolver = Utils.withResolvers();
-    resolver.promise.finally(() => { controller.abort() })
+    resolver.promise.catch(() => { })
+    resolver.promise.finally(() => {
+      this.controller = null
+      this.resolver = null;
+      controller.abort();
+    })
     const fns = eventNames.map((name) => {
       const isMain = mainNames.indexOf(name) > -1
       return [
@@ -42,6 +47,6 @@ export class DrawEvents {
     return resolver.promise
   }
   clear() {
-    this.resolver.reject()
+    this.resolver && this.resolver.reject('create event abort')
   }
 }

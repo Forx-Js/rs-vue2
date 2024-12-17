@@ -26,6 +26,12 @@
         un-p="x-3 y-1",
         un-hover="bg-blue",
         @click="createCloud()"
+      ) 添加云线框
+      button.mr-1.mt-1.bg-blue-500.rounded(
+        un-text="3 white",
+        un-p="x-3 y-1",
+        un-hover="bg-blue",
+        @click="createCloudMark()"
       ) 添加云线
       button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
         class="hover:bg-blue",
@@ -65,6 +71,7 @@ import {
   ArrowBox,
   CircleBox,
   CloudBox,
+  CloudMark,
   LineBox,
   PdfManager,
   PencilBox,
@@ -87,14 +94,14 @@ export default {
     function onFrameLoad() {
       manager.setIframe(iframe.value);
       manager.add([
-        new CloudBox({
+        new CloudMark({
           mark: [0.2, 0.2],
           points: [0.2, 0.1, 0.6, 0.125],
           index: 1,
           scale: 1,
           strText: "99999999",
         }),
-        new CloudBox({
+        new CloudMark({
           mark: [0.4, 0.65],
           points: [0.3, 0.7, 0.35, 0.725],
           index: 10,
@@ -102,12 +109,11 @@ export default {
           color: 0x0000ff,
           strText: "22222",
         }),
-         new ArrowBox({
+        new ArrowBox({
           points: [0.3, 0.7, 0.35, 0.725],
           index: 1,
           scale: 5,
           color: 0x0000ff,
-          strText: "22222",
         }),
       ]);
     }
@@ -116,6 +122,12 @@ export default {
     }
     async function createCloud() {
       const box = new CloudBox();
+      await manager.create(box);
+      manager.add(box);
+    }
+    async function createCloudMark() {
+      const box = new CloudMark();
+      console.log(box);
       await manager.create(box, (type) => {
         if (type === Utils.EventTypeEnum.MARK) box.data.strText = "strText";
       });
@@ -164,6 +176,7 @@ export default {
       createRect,
       createLine,
       onFrameLoad,
+      createCloudMark,
       createCloud,
       canvas,
       iframe,

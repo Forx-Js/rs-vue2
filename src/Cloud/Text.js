@@ -1,13 +1,7 @@
 import { Box } from "./Box";
 import { Utils } from "./utils";
 export class TextBox extends Box {
-  static type = Utils.BoxTypeEnum.text;
-  /**  @param {BoxData} data */
-  constructor(data) {
-    const d = TextBox.data(data);
-    d.type = TextBox.type;
-    super(d);
-  }
+  type = Utils.BoxTypeEnum.text;
   /**
    * @param {(type:string,time:number)=>Promise} handler
    */

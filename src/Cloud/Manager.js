@@ -54,6 +54,11 @@ export class Manager {
     return { ...box.data }
   }
   create() { }
+  stopCreate() {
+    this._tem_box = null;
+    this.renderView();
+    this._events.clear();
+  }
   destroy() {
     this._tem_cloud = null
     this._events.clear();

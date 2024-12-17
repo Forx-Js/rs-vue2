@@ -1,13 +1,7 @@
-import {Box} from "./Box"; 
-import {Utils} from "./utils";
+import { Box } from "./Box";
+import { Utils } from "./utils";
 export class LineBox extends Box {
-  static type = Utils.BoxTypeEnum.line;
-  /**  @param {BoxData} data */
-  constructor(data) {
-    const d = LineBox.data(data)
-    d.type = LineBox.type;
-    super(d);
-  }
+  type = Utils.BoxTypeEnum.line;
   setBoxPath() {
     const path = new Path2D()
     const { points } = this.boxRect;
@@ -17,5 +11,5 @@ export class LineBox extends Box {
     this.boxPath = path;
     return path
   }
-  create=Utils.dblPointHandler
+  create = Utils.dblPointHandler
 }

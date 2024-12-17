@@ -2,13 +2,7 @@ import { first, last } from "lodash-es";
 import { Utils } from "./utils";
 import { Box } from "./Box";
 export class CloudBox extends Box {
-  static type = Utils.BoxTypeEnum.cloud;
-  /**  @param {import("./Box").BoxData} data */
-  constructor(data) {
-    const d = CloudBox.data(data)
-    d.type = CloudBox.type;
-    super(d);
-  }
+  type = Utils.BoxTypeEnum.cloud;
   // 计算云线波浪线
   #getBoxCell() {
     const { x1, y1, x2, y2 } = this.boxRect;
@@ -35,6 +29,22 @@ export class CloudBox extends Box {
     );
     return balls;
   }
+  setBoxPath() {
+    const path = new Path2D()
+    const { boxRect: { points } } = this;
+    if (!points.length) return path
+    const list = this.#getBoxCell();
+    for (let i = 0; i < list.length; i++) {
+      const { x, y, r, s, e } = list[i];
+      path.arc(x, y, r, s, e);
+    }
+    this.boxPath = path;
+    return path
+  }
+  create = Utils.dblPointHandler
+}
+export class CloudMark extends CloudBox {
+  type = Utils.BoxTypeEnum.cloudMark;
   /** @param {Path2D} path  */
   _renderBox(path) {
     const { data: { points }, _ctx: ctx } = this;
@@ -73,22 +83,10 @@ export class CloudBox extends Box {
     ctx.stroke();
     ctx.restore()
   }
-  setBoxPath() {
-    const path = new Path2D()
-    const { boxRect: { points } } = this;
-    if (!points.length) return path
-    const list = this.#getBoxCell();
-    for (let i = 0; i < list.length; i++) {
-      const { x, y, r, s, e } = list[i];
-      path.arc(x, y, r, s, e);
-    }
-    this.boxPath = path;
-    return path
-  }
   /**
-   * @param {(type:string,time:number)=>Promise} handler 
-   */
-  async create(handler = () => { }) {
+  * @param {(type:string,time:number)=>Promise} handler 
+  */
+  create = async (handler = () => { }) => {
     const { manager, data } = this
     const pages = manager.getAllPage();
     let e, x, y;

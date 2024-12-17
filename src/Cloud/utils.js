@@ -14,6 +14,7 @@ export class Utils {
   }
   static BoxTypeEnum = {
     cloud: 'CLOUD',
+    cloudMark:'CLOUD_MARK',
     rect: "RECT",
     line: "LINE",
     pencil:"PENCIL",
