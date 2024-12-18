@@ -129,16 +129,15 @@ export default {
     }
     async function createCloudMark() {
       const box = new CloudMark();
-      await manager.create(box, (type) => {
-        if (type === Utils.EventTypeEnum.MARK) box.data.strText = "strText";
+      await manager.create(box, (type, box) => {
+        if (type === Utils.EventTypeEnum.MARK)
+          box.data.strText = "strText----------";
       });
       manager.add(box);
     }
     async function createRect() {
       const box = new RectBox();
-      await manager.create(box, (type) => {
-        if (type === Utils.EventTypeEnum.MARK) box.data.strText = "strText";
-      });
+      await manager.create(box);
       manager.add(box);
     }
     async function createLine() {

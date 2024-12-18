@@ -91,14 +91,12 @@ function isBetweenRadians(rad, start, end) {
 }
 export class CloudMark extends CloudBox {
   type = Utils.BoxTypeEnum.cloudMark;
-  /**
-  * @param {(type:string,time:number)=>Promise} handler 
-  */
+  /** @param {(type:string,box:Box,time:number)=>Promise} handler */
   create = async (handler = () => { }) => {
     const { manager, data } = this
     const pages = manager.getAllPage();
     let e, x, y;
-    await handler(Utils.EventTypeEnum.POINT, 0);
+    await handler(Utils.EventTypeEnum.POINT, this, 0);
     e = await manager._events.update(pages, 'pointerdown')
     const { el, index, point } = manager.getEventData(e)
     this.pageDom = el;
@@ -112,7 +110,7 @@ export class CloudMark extends CloudBox {
       data.points[3] = y;
       manager.renderView();
     }
-    await handler(Utils.EventTypeEnum.POINT, 1);
+    await handler(Utils.EventTypeEnum.POINT, this, 1);
     e = await manager._events.update(el, 'pointerup', { pointermove: updatePoint })
     const updateMark = (e) => {
       const { point: [x, y] } = manager.getEventData(e)
@@ -120,9 +118,8 @@ export class CloudMark extends CloudBox {
       data.mark[1] = y;
       manager.renderView();
     }
-    const strText = await handler(Utils.EventTypeEnum.MARK, 0);
-    if (isString(strText)) this.data.strText = strText
+    await handler(Utils.EventTypeEnum.MARK, this, 0);
     e = await manager._events.update(el, 'pointerup', { pointermove: updateMark });
-    await handler(Utils.EventTypeEnum.DONE, 0);
+    await handler(Utils.EventTypeEnum.DONE, this, 0);
   }
 }

@@ -106,14 +106,17 @@ export class PdfManager extends Manager {
   getAllPage() {
     return [...this.pageRootDom.querySelectorAll(".page")];
   }
-  /** @param {Box} box   */
-  async create(box, ...arg) {
+  /** 
+   * @param {Box} box
+   * @param {(type:string,box:Box,time:number)=>Promise} handler
+   **/
+  async create(box, handler) {
     this.renderView();
     this._tem_box = box;
     box.manager = this;
     this.pageRootDom.style.touchAction = 'none'
     try {
-      await box.create(...arg)
+      await box.create(handler)
     } finally {
       this.pageRootDom.style.removeProperty('touch-action')
     }

@@ -14,13 +14,13 @@ export class Utils {
   }
   static BoxTypeEnum = {
     cloud: 'CLOUD',
-    cloudMark:'CLOUD_MARK',
+    cloudMark: 'CLOUD_MARK',
     rect: "RECT",
     line: "LINE",
-    pencil:"PENCIL",
-    circle:'CIRCLE',
-    text:'TEXT',
-    arrow:'ARROW'
+    pencil: "PENCIL",
+    circle: 'CIRCLE',
+    text: 'TEXT',
+    arrow: 'ARROW'
   }
   static ManagerTypeEnum = {
     PDF: 'PDF',
@@ -32,9 +32,10 @@ export class Utils {
   }
   /**
    * @description 按下拖拽创建图形
-   * @this {import("./Box").Box} 
-   * @param {(type:string,time:number)=>Promise} handler*/
-  static async dblPointHandler(handler=()=>{}){
+   * @this {import("./Box").Box}
+   * @param {(type:string,box:import("./Box").Box,time:number)=>Promise} handler
+   **/
+  static async dblPointHandler(handler = () => { }) {
     const { manager, data } = this
     const pages = manager.getAllPage();
     let e
@@ -45,13 +46,13 @@ export class Utils {
       data.points.splice(i * 2, 2, x, y)
       manager.renderView();
     }
-    await handler(Utils.EventTypeEnum.POINT, 0);
+    await handler(Utils.EventTypeEnum.POINT, this, 0);
     e = await manager._events.update(pages, 'pointerdown')
     const { el, index } = manager.getEventData(e)
     this.pageDom = el;
     this.index = index;
-    await handler(Utils.EventTypeEnum.POINT, i++);
-    e = await manager._events.update(el, 'pointerup',{pointermove:moveHandler,pointerup:moveHandler})
-    await handler(Utils.EventTypeEnum.DONE, 0);
+    await handler(Utils.EventTypeEnum.POINT, this, i++);
+    e = await manager._events.update(el, 'pointerup', { pointermove: moveHandler, pointerup: moveHandler })
+    await handler(Utils.EventTypeEnum.DONE, this, 0);
   }
 }

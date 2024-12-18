@@ -11,9 +11,7 @@ export class PencilBox extends Box {
     this.boxPath = path;
     return path
   }
-  /**
-   * @param {(type:string,time:number)=>Promise} handler
-   */
+  /** @param {(type:string,box:Box,time:number)=>Promise} handler */
   async create(handler = () => { }) {
     const { manager, data } = this;
     const pages = manager.getAllPage();
@@ -22,16 +20,16 @@ export class PencilBox extends Box {
     const moveHandler = (e) => {
       const { point } = manager.getEventData(e);
       const [x, y] = point;
-      handler(Utils.EventTypeEnum.POINT, i++);
+      handler(Utils.EventTypeEnum.POINT, this, i++);
       data.points.push(x, y);
       manager.renderView();
     };
-    await handler(Utils.EventTypeEnum.POINT, i++);
+    await handler(Utils.EventTypeEnum.POINT, this, i++);
     e = await manager._events.update(pages, "pointerdown");
     const { el, index } = manager.getEventData(e);
     this.pageDom = el;
     this.index = index;
     e = await manager._events.update(el, "pointerup", { pointermove: moveHandler, });
-    handler(Utils.EventTypeEnum.DONE, 0);
+    handler(Utils.EventTypeEnum.DONE, this, 0);
   }
 }
