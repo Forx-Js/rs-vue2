@@ -1,4 +1,4 @@
-import { add, clamp, first, flatten, inRange, last } from "lodash-es";
+import { add, clamp, first, flatten, inRange, isString, last } from "lodash-es";
 import { Utils } from "./utils";
 import { Box } from "./Box";
 export class CloudBox extends Box {
@@ -120,7 +120,8 @@ export class CloudMark extends CloudBox {
       data.mark[1] = y;
       manager.renderView();
     }
-    await handler(Utils.EventTypeEnum.MARK, 0);
+    const strText = await handler(Utils.EventTypeEnum.MARK, 0);
+    if (isString(strText)) this.data.strText = strText
     e = await manager._events.update(el, 'pointerup', { pointermove: updateMark });
     await handler(Utils.EventTypeEnum.DONE, 0);
   }
