@@ -1,4 +1,4 @@
-import { add, clamp, first, flatten, inRange, isString, last } from "lodash-es";
+import { add, at, clamp, first, flatten, inRange, isString, last } from "lodash-es";
 import { Utils } from "./utils";
 import { Box } from "./Box";
 export class CloudBox extends Box {
@@ -24,16 +24,26 @@ export class CloudBox extends Box {
     balls.push(
       axis[0].map((x) => ({ x, y: first(axis[1]), r, s: 5 * rad, e: 7 * rad })),
       axis[1].map((y) => ({ x: last(axis[0]), y, r, s: 7 * rad, e: 9 * rad })),
-      axis[0].map((x) => ({ x, y: last(axis[1]), r, s: rad, e: rad * 3 })).reverse(),
-      axis[1].map((y) => ({ x: first(axis[0]), y, r, s: rad * 3, e: 5 * rad })).reverse(),
+      axis[0].map((x) => ({ x, y: last(axis[1]), r, s: 9 * rad, e: 11 * rad })).reverse(),
+      axis[1].map((y) => ({ x: first(axis[0]), y, r, s: 11 * rad, e: 13 * rad })).reverse(),
     )
+    const list = [];
     for (let i = 0; i < balls.length; i++) {
-      const list = balls[i];
-      const del = list.pop();
-      const next = balls[(i + 1) % balls.length][0];
-      next.s = del.s
+      const row = balls[i];
+      for (let j = 0; j < row.length; j++) {
+        const ball = row[j];
+        if (!j) {
+          const before = last(list)
+          if (before) { before.e = ball.e; continue; }
+        }
+        list.push(ball)
+      }
     }
-    return flatten(balls)
+    if (list.length > 1) {
+      const last = list.pop()
+      list[0].s = last.s
+    }
+    return list
   }
   setBoxPath() {
     const path = new Path2D()
@@ -58,8 +68,9 @@ export class CloudBox extends Box {
         }
       }
       const { x, y, r, e, s } = balls[rand.index]
-      const mRad = Math.atan2(markY - y, markX - x)
-      const a_rad = isBetweenRadians(mRad, s, e) ? mRad : (mRad + Math.PI);
+      const mRad = Math.atan2(markY - y, markX - x);
+      const isBetween = isBetweenRadians(mRad, s, e);
+      const a_rad = isBetween ? mRad : (mRad + Math.PI);
       path2.arc(x, y, r, a_rad, a_rad);
       path2.lineTo(markX, markY)
       path.addPath(path2);
@@ -69,9 +80,6 @@ export class CloudBox extends Box {
   }
   create = Utils.dblPointHandler
 }
-const getRad = rad => {
-  return rad > (Math.PI / 4) ? rad : (rad + 2 * Math.PI)
-}
 function normalizeRadians(radian) {
   // 将弧度值归一化到 [0, 2π) 范围内
   return ((radian % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
@@ -80,12 +88,9 @@ function isBetweenRadians(rad, start, end) {
   start = normalizeRadians(start);
   end = normalizeRadians(end);
   rad = normalizeRadians(rad);
-  // 如果 a <= b, 那么c应该在a和b之间
   if (start <= end) {
     return rad >= start && rad <= end;
-  }
-  // 如果 a > b, 那么c应该在a和2π之间或者0和b之间
-  else {
+  } else {
     return rad >= start || rad <= end;
   }
 }

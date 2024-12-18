@@ -61,8 +61,9 @@ export class Manager {
   }
   destroy() {
     this._tem_cloud = null
-    this._events.clear();
     this.clear()
+    this.renderView();
+    this._events.clear();
   }
   getXY() { return [0, 0] }
   jump() { }
