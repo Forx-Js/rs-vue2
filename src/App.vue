@@ -44,6 +44,10 @@
       ) 添加线
       button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
         class="hover:bg-blue",
+        @click="createLeadLine()"
+      ) 添加引线
+      button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
+        class="hover:bg-blue",
         @click="createArrow()"
       ) 添加箭头
       button.mr-1.mt-1.px-3.py-1.text-3.bg-blue-500.text-white.rounded(
@@ -73,6 +77,7 @@ import {
   CircleBox,
   CloudBox,
   CloudMark,
+  LeadLineBox,
   LineBox,
   PdfManager,
   PencilBox,
@@ -145,6 +150,14 @@ export default {
       await manager.create(box);
       manager.add(box);
     }
+
+    async function createLeadLine() {
+      const box = new LeadLineBox({
+        strText: "请输入文本",
+      });
+      await manager.create(box);
+      manager.add(box);
+    }
     async function createPencil() {
       do {
         const box = new PencilBox();
@@ -176,6 +189,7 @@ export default {
       createPencil,
       createRect,
       createLine,
+      createLeadLine,
       onFrameLoad,
       createCloudMark,
       createCloud,

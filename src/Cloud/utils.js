@@ -20,7 +20,8 @@ export class Utils {
     pencil: "PENCIL",
     circle: 'CIRCLE',
     text: 'TEXT',
-    arrow: 'ARROW'
+    arrow: 'ARROW',
+    leadLine: 'LEAD_LINE'
   }
   static ManagerTypeEnum = {
     PDF: 'PDF',
