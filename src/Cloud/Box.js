@@ -106,7 +106,7 @@ export class Box {
     const isSetMark = !!mark.length;
     if (!isSetMark || !strText) return
     ctx.save();
-    ctx.font = `bold ${textHeight}px serif`;
+    ctx.font = `bold ${textHeight}px fangsong,'sans-serif'`;
     ctx.textAlign = boxRect.markX >= boxRect.x2 ? "left" : boxRect.markX <= boxRect.x1 ? "right" : 'center';
     ctx.textBaseline = boxRect.markY > boxRect.y2 ? "top" : boxRect.markY < boxRect.y1 ? "bottom" : 'middle';
     ctx.fillText(strText, boxRect.markX, boxRect.markY);
