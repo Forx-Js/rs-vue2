@@ -13,6 +13,26 @@ export class LineBox extends Box {
   }
   create = Utils.dblPointHandler
 }
+export class ArrowBox extends Box {
+  type = Utils.BoxTypeEnum.arrow;
+  setBoxPath() {
+    const path = new Path2D()
+    const { boxRect: { points }, data: { textHeight } } = this;
+    path.moveTo(...points[0]);
+    for (const [x, y] of points)
+      path.lineTo(x, y);
+    const length = Math.hypot(points[1][1] - points[0][1], points[1][0] - points[0][0]) / 2;
+    const arrowLength = Math.min(length, textHeight);
+    const rotate = Math.atan2(points[1][1] - points[0][1], points[1][0] - points[0][0]);
+    const angle = Math.PI + Math.PI / 10;
+    path.moveTo(points[1][0] + arrowLength * Math.cos(rotate + angle), points[1][1] + arrowLength * Math.sin(rotate + angle))
+    path.lineTo(points[1][0], points[1][1])
+    path.lineTo(points[1][0] + arrowLength * Math.cos(rotate - angle), points[1][1] + arrowLength * Math.sin(rotate - angle))
+    this.boxPath = path;
+    return path
+  }
+  create = Utils.dblPointHandler
+}
 export class LeadLineBox extends Box {
   type = Utils.BoxTypeEnum.leadLine;
   /** @param {(type:string,box:Box,time:number)=>Promise} handler */

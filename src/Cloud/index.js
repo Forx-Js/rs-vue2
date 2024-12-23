@@ -6,4 +6,3 @@ export * from './Line';
 export * from './Pencil';
 export * from './Circle';
 export * from './Text';
-export * from './ArrowLine';
