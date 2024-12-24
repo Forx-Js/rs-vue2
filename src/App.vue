@@ -21,7 +21,9 @@
       un-bg="blue-800"
     )
     .border-b-1.border-b-solid.border-gray.pb-2
-      input(type="checkbox", v-model="isContinuous")
+      div {{ color }}
+        input(type="checkbox", v-model="isContinuous")
+        input(type="color", v-model="color")
       button.mr-1.mt-1.bg-blue-500.rounded(
         un-text="3 white",
         un-p="x-3 y-1",
@@ -71,7 +73,7 @@
         span.text-black {{ cloud.data.strText }}
 </template>
 <script>
-import { onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import {
   ArrowBox,
   CircleBox,
@@ -85,11 +87,16 @@ import {
   TextBox,
   Utils,
 } from "./Cloud";
+import { uniqueId } from "lodash-es";
 export default {
   setup() {
     const isContinuous = ref(false);
     const iframe = ref();
     const clouds = ref([]);
+    const color = ref("#ff0000");
+    const colorNum = computed(() => {
+      return parseInt(color.value.replace("#", ""), 16);
+    });
     let manager = new PdfManager();
     manager.onChange(() => {
       clouds.value = [...manager.list];
@@ -135,8 +142,7 @@ export default {
     async function createCloudMark() {
       const box = new CloudMark();
       await manager.create(box, (type, box) => {
-        if (type === Utils.EventTypeEnum.MARK)
-          box.data.strText = "strText----------";
+        if (type === Utils.EventTypeEnum.MARK) box.data.strText = uniqueId('Cloud_');
       });
       manager.add(box);
     }
@@ -161,6 +167,7 @@ export default {
     async function createPencil() {
       do {
         const box = new PencilBox();
+        box.data.color = colorNum.value;
         await manager.create(box);
         manager.add(box);
       } while (isContinuous.value);
@@ -197,6 +204,7 @@ export default {
       iframe,
       clouds,
       clickHandler,
+      color,
     };
   },
 };

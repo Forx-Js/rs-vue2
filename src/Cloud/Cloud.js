@@ -1,4 +1,4 @@
-import { add, last } from "lodash-es";
+import { add, clamp, last, range } from "lodash-es";
 import { Utils } from "./utils";
 import { Box } from "./Box";
 export class CloudBox extends Box {
@@ -6,26 +6,26 @@ export class CloudBox extends Box {
   // 计算波浪线的位置
   #getBoxCell() {
     const { boxRect } = this;
-    const r = 10;
-    const p = 0;
-    const round = p * r;
+    const maxSize = Math.min(boxRect.x2 - boxRect.x1, boxRect.y2 - boxRect.y1);
+    const r = clamp(maxSize, 6, 14);
     const x1 = boxRect.x1 + r,
       y1 = boxRect.y1 + r,
       x2 = boxRect.x2,
       y2 = boxRect.y2
     const width = x2 - x1;
     const height = y2 - y1;
-    const xNum = Math.max(Math.ceil(width / r / 1.3), 1);
-    const yNum = Math.max(Math.ceil(height / r / 1.3), 1);
+    const K = 1.5;
+    const xNum = Math.max(Math.ceil(width / r / K), 1);
+    const yNum = Math.max(Math.ceil(height / r / K), 1);
     const gap_x = width / xNum;
     const gap_y = height / yNum;
     const axis = [
-      Array.from({ length: xNum }, (_, i) => i * gap_x + x1 + round),
-      Array.from({ length: yNum }, (_, i) => i * gap_y + y1 + round),
+      Array.from({ length: xNum }, (_, i) => i * gap_x + x1),
+      Array.from({ length: yNum }, (_, i) => i * gap_y + y1),
     ];
     const balls = [];
-    const rad_x = Math.atan2(r << 1, gap_x)
-    const rad_y = Math.atan2(gap_y >> 1, r)
+    const rad_x = Math.acos(gap_x / 2 / r)
+    const rad_y = Math.asin(gap_y / 2 / r)
     balls.push(
       axis[0].map((x) => ({ x, y: axis[1][0], r, start: Math.PI + rad_x, end: 2 * Math.PI - rad_x })),
       axis[1].map((y) => ({ x: axis[0].at(-1), y, r, start: -rad_y, end: rad_y })),
@@ -67,6 +67,7 @@ export class CloudBox extends Box {
     }
     path.closePath();
     if (this.data.mark.length) {
+      const inBox = this._ctx.isPointInPath(path, markX, markY)
       const path2 = new Path2D();
       const rand = { index: -1, diff: 0 }
       const balls = list
@@ -78,10 +79,9 @@ export class CloudBox extends Box {
           rand.diff = diff;
         }
       }
-      const { x, y, r, end, start } = balls[rand.index]
+      const { x, y, r, } = balls[rand.index]
       const mRad = Math.atan2(markY - y, markX - x);
-      const isBetween = isBetweenRadians(mRad, start, end);
-      const a_rad = isBetween ? mRad : (mRad + Math.PI);
+      const a_rad = inBox ? (mRad + Math.PI) : mRad;
       path2.arc(x, y, r, a_rad, a_rad);
       path2.lineTo(markX, markY)
       path.addPath(path2);
