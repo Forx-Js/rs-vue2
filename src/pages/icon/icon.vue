@@ -17,7 +17,7 @@ export default {
       if (!this.name) return;
       const json = await loadIcon(this.name);
       const renderData = iconToSVG(json, {
-        height: "1em",
+        width: "1em",
       });
       const svg = iconToHTML(
         replaceIDs(renderData.body),
