@@ -6,7 +6,7 @@ export default new Router({
   routes: [
     {
       path: '/',
-      redirect: { name: 'icon' }
+      redirect: { name: 'office' }
     },
     {
       name: 'pdf',
@@ -17,6 +17,11 @@ export default new Router({
       name: 'icon',
       path: '/icon',
       component: () => import('../pages/icon/index.vue')
+    },
+    {
+      name: 'office',
+      path: '/office',
+      component: () => import('../pages/office/index.vue')
     }
   ]
 });
