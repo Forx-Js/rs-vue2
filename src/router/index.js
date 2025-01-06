@@ -21,7 +21,7 @@ export default new Router({
     {
       name: 'office',
       path: '/office',
-      component: () => import('../pages/office/index.vue')
+      component: () => import('../pages/office/doc.vue')
     }
   ]
 });

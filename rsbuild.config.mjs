@@ -4,6 +4,9 @@ import { pluginPug } from "@rsbuild/plugin-pug";
 import { pluginSass } from "@rsbuild/plugin-sass";
 export default defineConfig({
   plugins: [pluginSass(), pluginPug(), pluginVue2()],
+  source: {
+    tsconfigPath: "./jsconfig.json",
+  },
   server: {
     proxy: [
       {
