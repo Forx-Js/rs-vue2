@@ -3,16 +3,80 @@ import { Box } from "./Box";
 import { DrawEvents } from "./DrawEvent";
 
 export class Manager {
+  constructor() {
+    this._initObs();
+  }
   /** @type {Box[]} */
   list = [];
   #onChange;
   /** @type {Box} */
   _tem_box;
   _events = new DrawEvents(this);
-  constructor() {
-    this._initObs();
+  _activePage = new Set();
+  /** @type {IntersectionObserver} */
+  _scroll_obs;
+  /** @type {MutationObserver} */
+  _page_obs;
+  /** @type {ResizeObserver} */
+  _size_obs;
+  /** @type {HTMLDivElement} */
+  scrollEl;
+  /** @type {HTMLDivElement} */
+  parentEl;
+  /** @type {HTMLDivElement} */
+  viewEl;
+  setScrollEl(el) {
+    el.addEventListener("scroll", this._onPageScroll);
+    this._size_obs.observe(el);
+    this.scrollEl = el;
   }
-  _initObs() {}
+  setParentEl(el) {
+    this.setCanvas();
+    el.appendChild(this.canvas);
+    this.viewEl = el;
+  }
+  setViewEl(el) {
+    this._page_obs.observe(el, { childList: true });
+    el.addEventListener("contextmenu", this._onContextmenu);
+    this.parentEl = el;
+  }
+  _onIntersectionObserver(rectList) {
+    const activePage = this._activePage;
+    for (const rect of rectList) {
+      if (rect.isIntersecting || rect.isVisible) activePage.add(rect.target);
+      else activePage.delete(rect.target);
+    }
+    this.renderView();
+  }
+  _onMutationObserver() {
+    const pages = this.parentEl.querySelectorAll(".page");
+    const scroll_obs = this._scroll_obs;
+    const size_obs = this._size_obs;
+    for (const page of pages) {
+      scroll_obs.observe(page);
+      size_obs.observe(page);
+    }
+  }
+  _obResizeObserver() {
+    const parentEl = this.parentEl;
+    const pageRect = parentEl.getBoundingClientRect();
+    this.canvas.height = pageRect.height;
+    this.canvas.width = pageRect.width;
+    const left = pageRect.left;
+    const top = pageRect.top;
+    this.canvas.style.left = left + "px";
+    this.canvas.style.top = top + "px";
+    this.renderView();
+  }
+  _initObs() {
+    // 实时更新增在视口的页面,避免渲染不必要的元素
+    this._scroll_obs = new IntersectionObserver(
+      this._onIntersectionObserver.bind(this)
+    );
+    // 当添加新页面时,可以直接更新
+    this._page_obs = new MutationObserver(this._onMutationObserver.bind(this));
+    this._size_obs = new ResizeObserver(this._obResizeObserver.bind(this));
+  }
   /** @type {CanvasRenderingContext2D} */
   get ctx() {
     const { canvas } = this;
@@ -59,7 +123,24 @@ export class Manager {
     this.#onChange?.(list);
   }
   renderView = throttle(this.renderFn, 45, { leading: false, trailing: true });
-  renderFn() {}
+  renderFn() {
+    const clouds = this.list;
+    const visibleClouds = [];
+    const activePage = this._activePage;
+    const __tem = this._tem_box;
+    for (const page of activePage) {
+      const index = ~~page.dataset.pageNumber;
+      for (const cloud of clouds) {
+        if (cloud.index === index) {
+          cloud.pageDom = page;
+          visibleClouds.push(cloud);
+        }
+      }
+      if (__tem && __tem.index === index) visibleClouds.push(__tem);
+    }
+    this.visibleClouds = visibleClouds.filter((b) => b.visible);
+    this.render(visibleClouds);
+  }
   /** @param {Box} box */
   _transform(box) {
     return { ...box.data };
@@ -70,7 +151,12 @@ export class Manager {
     this.renderView();
     this._events.clear();
   }
+  _onPageScroll = () => this.renderView();
   destroy() {
+    this._scroll_obs.disconnect();
+    this._page_obs.disconnect();
+    this._size_obs.disconnect();
+    this.scrollEl.removeEventListener("scroll", this._onPageScroll);
     this._tem_cloud = null;
     this.clear();
     this.renderView();
@@ -83,5 +169,7 @@ export class Manager {
   getEventData(e) {
     return { e, index: 1, point: this.getXY(e), el: e.target };
   }
-  mousePoint = [];
+  getAllPage() {
+    return [];
+  }
 }

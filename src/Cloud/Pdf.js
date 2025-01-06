@@ -1,112 +1,22 @@
-import { chunk, flatten, max, min, } from "lodash-es";
+import { chunk, flatten, max, min } from "lodash-es";
 import { Manager } from "./Manager";
 import { Box } from "./Box";
 export class PdfManager extends Manager {
-  constructor() {
-    super();
-    this.#initObs();
-  }
   /** @type {HTMLIFrameElement} */
   iframe;
   get pdfViewer() {
-    return this.iframe.contentWindow?.PDFViewerApplication?.pdfViewer
-  }
-  /** @type {Box[]} */
-  visibleClouds = []
-  #activePage = new Set()
-  /** @type {IntersectionObserver} */
-  #scroll_obs
-  /** @type {MutationObserver} */
-  #page_obs
-  /** @type {ResizeObserver} */
-  #size_obs
-  /** @type {HTMLDivElement} */
-  pageRootDom
-  #onPageScroll = () => this.renderView()
-  renderFn() {
-    const clouds = this.list
-    const visibleClouds = [];
-    const activePage = this.#activePage
-    const __tem = this._tem_box;
-    for (const page of activePage) {
-      const index = ~~page.dataset.pageNumber;
-      for (const cloud of clouds) {
-        if (cloud.index === index) {
-          cloud.pageDom = page;
-          visibleClouds.push(cloud);
-        }
-      }
-      if (__tem && __tem.index === index) visibleClouds.push(__tem);
-    }
-    this.visibleClouds = visibleClouds.filter(b => b.visible);
-    this.render(visibleClouds);
+    return this.iframe.contentWindow?.PDFViewerApplication?.pdfViewer;
   }
   setIframe(iframe) {
     this.iframe = iframe;
     const doc = iframe.contentDocument;
     const root = doc.querySelector("#viewerContainer");
     const viewer = doc.querySelector("#viewer");
-    this.setCanvas()
-    doc.body.appendChild(this.canvas);
-    this.#size_obs.observe(root);
-    this.#page_obs.observe(viewer, { childList: true });
-    root.addEventListener("scroll", this.#onPageScroll);
-    root.addEventListener("contextmenu", this.#onContextmenu);
-    this.pageRootDom = root
+    this.setScrollEl(root);
+    this.setParentEl(doc.body);
+    this.setViewEl(viewer);
   }
-  baseCanvasMove = (e) => {
-    const { ctx, visibleClouds } = this
-    if (!ctx || !visibleClouds.length) {
-      this.mousePoint = []
-    } else {
-      const point = this.getXY(e);
-      this.mousePoint = point;
-      this.renderView()
-    }
-  }
-  // 初始化观察器
-  #initObs() {
-    // 实时更新增在视口的页面,避免渲染不必要的元素
-    this.#scroll_obs = new IntersectionObserver((rectList) => {
-      const activePage = this.#activePage
-      for (const rect of rectList) {
-        if (rect.isIntersecting || rect.isVisible) {
-          activePage.add(rect.target);
-        } else {
-          activePage.delete(rect.target);
-        }
-      }
-      this.renderView();
-    });
-    // 当添加新页面时,可以直接更新
-    this.#page_obs = new MutationObserver(() => {
-      const pages = this.pageRootDom.querySelectorAll(".page");
-      const scroll_obs = this.#scroll_obs
-      const size_obs = this.#size_obs
-      for (const page of pages) {
-        // page.addEventListener('pointermove', this.baseCanvasMove)
-        scroll_obs.observe(page);
-        size_obs.observe(page);
-      }
-    });
-    this.#size_obs = new ResizeObserver(() => {
-      const iframe = this.iframe
-      const pageRootDom = this.pageRootDom
-      const iframeRect = iframe.getBoundingClientRect();
-      const pageRect = pageRootDom.getBoundingClientRect();
-      this.canvas.height = pageRect.height;
-      this.canvas.width = pageRect.width;
-      const left = pageRect.left + iframeRect.left;
-      const top = pageRect.top + iframeRect.top;
-      this.canvas.style.left = left + 'px';
-      this.canvas.style.top = top + 'px';
-      this.renderView();
-    });
-  }
-  getAllPage() {
-    return [...this.pageRootDom.querySelectorAll(".page")];
-  }
-  /** 
+  /**
    * @param {Box} box
    * @param {(type:string,box:Box,time:number)=>Promise} handler
    **/
@@ -114,11 +24,11 @@ export class PdfManager extends Manager {
     this.renderView();
     this._tem_box = box;
     box.manager = this;
-    this.pageRootDom.style.touchAction = 'none'
+    this.scrollEl.style.touchAction = "none";
     try {
-      await box.create(handler)
+      await box.create(handler);
     } finally {
-      this.pageRootDom.style.removeProperty('touch-action')
+      this.scrollEl.style.removeProperty("touch-action");
     }
     const pdf = this.pdfViewer ? this.pdfViewer._pages[box.index - 1] : {};
     box.data.scale = pdf.viewport.scale;
@@ -128,13 +38,26 @@ export class PdfManager extends Manager {
   }
   getEventData(e) {
     const el = getEventPage(e);
-    const index = ~~el.dataset.pageNumber
+    const index = ~~el.dataset.pageNumber;
     return {
       e: e,
       index,
       el,
-      point: this.getXY(e)
-    }
+      point: this.getXY(e),
+    };
+  }
+  _obResizeObserver() {
+    const iframe = this.iframe
+    const pageRootDom = this.pageRootDom
+    const iframeRect = iframe.getBoundingClientRect();
+    const pageRect = pageRootDom.getBoundingClientRect();
+    this.canvas.height = pageRect.height;
+    this.canvas.width = pageRect.width;
+    const left = pageRect.left + iframeRect.left;
+    const top = pageRect.top + iframeRect.top;
+    this.canvas.style.left = left + 'px';
+    this.canvas.style.top = top + 'px';
+    this.renderView();
   }
   getXY(e) {
     const page = getEventPage(e);
@@ -143,33 +66,34 @@ export class PdfManager extends Manager {
     const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
     let x = (e.clientX - rect.left) / rect.width;
     let y = (e.clientY - rect.top) / rect.height;
-    const xy = this.getRotateXY([x, y], 360 - pdf.viewport.rotation)
+    const xy = this.getRotateXY([x, y], 360 - pdf.viewport.rotation);
     return xy;
   }
   getRotateXY(xy = [], rotation = 0) {
     const d = rotation / 90;
-    const kx = d === 2 || d === 1
-    const ky = d === 2 || d === 3
+    const kx = d === 2 || d === 1;
+    const ky = d === 2 || d === 3;
     if (d % 2) xy.reverse();
-    if (kx) xy[0] = 1 - xy[0]
-    if (ky) xy[1] = 1 - xy[1]
-    return xy
+    if (kx) xy[0] = 1 - xy[0];
+    if (ky) xy[1] = 1 - xy[1];
+    return xy;
   }
   /** @param {Box} cloud */
   _transform(cloud) {
-    const { data: _data, index } = cloud
+    const { data: _data, index } = cloud;
     const pdf = this.pdfViewer ? this.pdfViewer._pages[index - 1] : {};
     const data = {
       ..._data,
       points: [],
       mark: [],
-    }
-    data.points = flatten(chunk(_data.points, 2).map(xy => this.getRotateXY(xy, pdf.viewport.rotation)))
-    data.mark = this.getRotateXY([..._data.mark], pdf.viewport.rotation)
-    return data
-  }
-  #onContextmenu(e) {
-    e.preventDefault();
+    };
+    data.points = flatten(
+      chunk(_data.points, 2).map((xy) =>
+        this.getRotateXY(xy, pdf.viewport.rotation)
+      )
+    );
+    data.mark = this.getRotateXY([..._data.mark], pdf.viewport.rotation);
+    return data;
   }
   jump(cloud) {
     const { pdfViewer, canvas } = this;
@@ -187,16 +111,14 @@ export class PdfManager extends Manager {
     const cx = (max(xRow) + min(xRow)) / 2,
       cy = (max(yRow) + min(yRow)) / 2;
     const { height, width } = canvas.getBoundingClientRect();
+    console.log(pageDom);
+
     const left = pageDom.offsetLeft + page.width * cx - (width >> 1);
     const top = pageDom.offsetTop + page.height * cy - (height >> 1);
     pdfViewer.container.scrollTo({ left, top });
   }
-  destroy() {
-    this.#scroll_obs.disconnect();
-    this.#page_obs.disconnect();
-    this.#size_obs.disconnect();
-    this.pageRootDom.removeEventListener("scroll", this.#onPageScroll);
-    super.destroy();
+  getAllPage() {
+    return [...this.viewEl.querySelectorAll(".page")];
   }
 }
 function getEventPage(e) {

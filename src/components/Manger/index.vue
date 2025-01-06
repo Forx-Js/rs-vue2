@@ -62,7 +62,7 @@
         :key="index",
         @click="clickHandler(cloud)"
       )
-        span.text-black {{ cloud.data.strText }}
+        span.text-black {{ cloud.data.index }} - {{ cloud.data.strText }} 
 </template>
 <script>
 import { computed, defineComponent, ref } from "vue";
