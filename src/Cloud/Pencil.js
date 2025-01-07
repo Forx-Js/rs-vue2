@@ -3,16 +3,18 @@ import { Utils } from "./utils";
 export class PencilBox extends Box {
   type = Utils.BoxTypeEnum.pencil;
   setBoxPath() {
-    const path = new Path2D()
+    const path = new Path2D();
     const { points } = this.boxRect;
     const list = points;
-    path.moveTo(list[0][0], list[0][1]);
-    for (const [x, y] of list) path.lineTo(x, y);
+    if (list.length) {
+      path.moveTo(list[0][0], list[0][1]);
+      for (const [x, y] of list) path.lineTo(x, y);
+    }
     this.boxPath = path;
-    return path
+    return path;
   }
   /** @param {(type:string,box:Box,time:number)=>Promise} handler */
-  async create(handler = () => { }) {
+  async create(handler = () => {}) {
     const { manager, data } = this;
     const pages = manager.getAllPage();
     let e;
@@ -29,7 +31,9 @@ export class PencilBox extends Box {
     const { el, index } = manager.getEventData(e);
     this.pageDom = el;
     this.index = index;
-    e = await manager._events.update(el, "pointerup", { pointermove: moveHandler, });
+    e = await manager._events.update(el, "pointerup", {
+      pointermove: moveHandler,
+    });
     handler(Utils.EventTypeEnum.DONE, this, 0);
   }
 }
