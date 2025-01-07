@@ -159,7 +159,7 @@ export class Manager {
     this._page_obs.disconnect();
     this._size_obs.disconnect();
     this.scrollEl.removeEventListener("scroll", this._onPageScroll);
-    this._tem_cloud = null;
+    this._tem_box = null;
     this.clear();
     this.renderView();
     this._events.clear();

@@ -142,5 +142,8 @@ export class Box {
     this.boxRect = rect;
     return this.boxRect;
   }
-  async create() { }
+  async create() {
+    console.warn("box create is not implemented");
+    
+  }
 }

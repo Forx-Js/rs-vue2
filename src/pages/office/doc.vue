@@ -14,7 +14,7 @@ div
 const KEY = "kk-code";
 import { computed, ref } from "vue";
 import MangerPane from "@/components/Manger/index.vue";
-import { KKDocManager } from "@/Cloud/kk/DocManager";
+import { KKExcelManager } from "@/Cloud/kk/ExcelManager";
 import { ArrowBox, CloudMark } from "@/Cloud";
 export default {
   components: { MangerPane },
@@ -42,7 +42,7 @@ export default {
     const iframeUrl = computed(() => {
       return `/kk/onlinePreview?url=${base64.value}`;
     });
-    const manager = new KKDocManager();
+    const manager = new KKExcelManager();
     function changeUrl() {
       if (fileUrl) {
         localStorage.setItem(KEY, base64.value);

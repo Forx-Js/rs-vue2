@@ -1,28 +1,47 @@
 import { Manager } from "@/Cloud/Manager";
 import { Box } from "../Box";
-const PageFlag = ".img-area";
-export class KKDocManager extends Manager {
+import { set } from "lodash-es";
+const PageFlag = ".luckysheetsheetchange";
+export class KKExcelManager extends Manager {
+  // _excelObj = void 0;
   /** @param {IntersectionObserverEntry} rectList  */
   _onMutationObserver() {
-    const pages = this.getAllPage();
-    const scroll_obs = this._scroll_obs;
-    const size_obs = this._size_obs;
-    let index = 1;
-    for (const page of pages) {
-      page.dataset.pageNumber = index++;
-      scroll_obs.observe(page);
-      size_obs.observe(page);
+    const doc = this.iframe.contentDocument;
+    const sheetEl = doc.querySelector("#luckysheet");
+    const scroll = doc.querySelector("#luckysheet-cell-main");
+    const excelSheet = this.iframe.contentWindow.luckysheet;
+    this.viewEl = sheetEl;
+    this.setScrollEl(scroll);
+    this.setParentEl(doc.body);
+    this.canvas.style.zIndex = 1004;
+    scroll.addEventListener("scroll", this._onPageScroll);
+    this._excelObj = excelSheet;
+  }
+  sheetIndex = 1;
+  renderFn() {
+    const page = this.scrollEl.querySelector(".luckysheetsheetchange");
+    const { list: clouds, sheetIndex } = this;
+    const visibleClouds = [];
+    for (const cloud of clouds) {
+      if (cloud.index === sheetIndex) {
+        cloud.pageDom = page;
+        visibleClouds.push(cloud);
+      }
     }
+    this._tem_box && visibleClouds.push(this._tem_box);
+    this.visibleClouds = visibleClouds;
+    this.render(visibleClouds);
   }
   setIframe(iframe) {
     this.iframe = iframe;
     const doc = iframe.contentDocument;
-    const root = doc.querySelector(".container");
-    const viewer = root;
-    this.setScrollEl(root);
-    this.setParentEl(doc.body);
-    this.setViewEl(viewer);
-    this._onMutationObserver();
+    const options = this.iframe.contentWindow.luckysheetOptions;
+    set(options, "hook.sheetActivate", (index) => {
+      this.sheetIndex = index;
+      this.renderView();
+    });
+    const luckysheet = doc.querySelector("#luckysheet");
+    this._page_obs.observe(luckysheet, { childList: true });
   }
   /**
    * @param {Box} box
@@ -34,15 +53,6 @@ export class KKDocManager extends Manager {
     box.manager = this;
     const dragstartCon = new AbortController();
     this.scrollEl.style.touchAction = "none";
-    this.viewEl.querySelectorAll("img").forEach((img) => {
-      img.addEventListener(
-        "dragstart",
-        function (event) {
-          event.preventDefault(); // 阻止默认的拖拽行为
-        },
-        { signal: dragstartCon.signal }
-      );
-    });
     try {
       await box.create(handler);
     } finally {
@@ -58,7 +68,8 @@ export class KKDocManager extends Manager {
   }
   getEventData(e) {
     const el = getEventPage(e);
-    const index = ~~el.dataset.pageNumber;
+    const index = this.sheetIndex;
+    // ~~el.dataset.pageNumber;
     return {
       e: e,
       index,
