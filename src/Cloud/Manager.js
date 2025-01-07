@@ -1,4 +1,4 @@
-import { pullAll, throttle } from "lodash-es";
+import { max, min, pullAll, throttle } from "lodash-es";
 import { Box } from "./Box";
 import { DrawEvents } from "./DrawEvent";
 
@@ -58,7 +58,7 @@ export class Manager {
     }
   }
   _obResizeObserver() {
-    const parentEl = this.parentEl;
+    const parentEl = this.scrollEl;
     const pageRect = parentEl.getBoundingClientRect();
     this.canvas.height = pageRect.height;
     this.canvas.width = pageRect.width;
@@ -145,7 +145,9 @@ export class Manager {
   _transform(box) {
     return { ...box.data };
   }
-  create() {}
+  create() {
+    console.warn("create is not implemented");
+  }
   stopCreate() {
     this._tem_box = null;
     this.renderView();
@@ -163,13 +165,34 @@ export class Manager {
     this._events.clear();
   }
   getXY() {
+    console.warn("getXY is not implemented");
     return [0, 0];
   }
-  jump() {}
+  jump() {
+    console.warn("jump is not implemented");
+  }
+  jumpToPageAndMark(pageDom, cloud) {
+    const { canvas } = this;
+    const { points, mark } = cloud.data;
+    const [xRow, yRow] = [...points, ...mark].reduce(
+      (list, val, index) => {
+        list[index % 2].push(val);
+        return list;
+      },
+      [[], []]
+    );
+    const cx = (max(xRow) + min(xRow)) / 2,
+      cy = (max(yRow) + min(yRow)) / 2;
+    const { height, width } = canvas.getBoundingClientRect();
+    const left = pageDom.offsetLeft + pageDom.clientWidth * cx - (width >> 1);
+    const top = pageDom.offsetTop + pageDom.clientHeight * cy - (height >> 1);
+    this.scrollEl.scrollTo({ left, top });
+  }
   getEventData(e) {
     return { e, index: 1, point: this.getXY(e), el: e.target };
   }
   getAllPage() {
+    console.warn("getAllPage is not implemented");
     return [];
   }
 }

@@ -46,19 +46,6 @@ export class PdfManager extends Manager {
       point: this.getXY(e),
     };
   }
-  _obResizeObserver() {
-    const iframe = this.iframe
-    const pageRootDom = this.pageRootDom
-    const iframeRect = iframe.getBoundingClientRect();
-    const pageRect = pageRootDom.getBoundingClientRect();
-    this.canvas.height = pageRect.height;
-    this.canvas.width = pageRect.width;
-    const left = pageRect.left + iframeRect.left;
-    const top = pageRect.top + iframeRect.top;
-    this.canvas.style.left = left + 'px';
-    this.canvas.style.top = top + 'px';
-    this.renderView();
-  }
   getXY(e) {
     const page = getEventPage(e);
     const rect = page.getBoundingClientRect();
@@ -96,26 +83,11 @@ export class PdfManager extends Manager {
     return data;
   }
   jump(cloud) {
-    const { pdfViewer, canvas } = this;
+    const { pdfViewer } = this;
     pdfViewer.currentScale = cloud.data.scale;
     const page = pdfViewer._pages[cloud.index - 1];
     const pageDom = page.div;
-    const { points, mark } = cloud.data;
-    const [xRow, yRow] = [...points, ...mark].reduce(
-      (list, val, index) => {
-        list[index % 2].push(val);
-        return list;
-      },
-      [[], []]
-    );
-    const cx = (max(xRow) + min(xRow)) / 2,
-      cy = (max(yRow) + min(yRow)) / 2;
-    const { height, width } = canvas.getBoundingClientRect();
-    console.log(pageDom);
-
-    const left = pageDom.offsetLeft + page.width * cx - (width >> 1);
-    const top = pageDom.offsetTop + page.height * cy - (height >> 1);
-    pdfViewer.container.scrollTo({ left, top });
+    this.jumpToPageAndMark(pageDom, cloud);
   }
   getAllPage() {
     return [...this.viewEl.querySelectorAll(".page")];

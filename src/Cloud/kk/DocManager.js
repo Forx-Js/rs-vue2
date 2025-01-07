@@ -3,14 +3,13 @@ import { Box } from "../Box";
 const PageFlag = ".img-area";
 export class KKDocManager extends Manager {
   /** @param {IntersectionObserverEntry} rectList  */
-  onMutationObserver() {
+  _onMutationObserver() {
     const pages = this.getAllPage(PageFlag);
     const scroll_obs = this._scroll_obs;
     const size_obs = this._size_obs;
-    let index = 0;
+    let index = 1;
     for (const page of pages) {
-      index++;
-      page.dataset.pageNumber = index;
+      page.dataset.pageNumber = index++;
       scroll_obs.observe(page);
       size_obs.observe(page);
     }
@@ -23,6 +22,7 @@ export class KKDocManager extends Manager {
     this.setScrollEl(root);
     this.setParentEl(doc.body);
     this.setViewEl(viewer);
+    this._onMutationObserver();
   }
   /**
    * @param {Box} box
@@ -72,6 +72,13 @@ export class KKDocManager extends Manager {
     let x = (e.clientX - rect.left) / rect.width;
     let y = (e.clientY - rect.top) / rect.height;
     return [x, y];
+  }
+  jump(cloud) {
+    const index = cloud.index;
+    const page = this.viewEl.querySelector(
+      `.img-area[data-page-number="${index}"]`
+    );
+    this.jumpToPageAndMark(page, cloud);
   }
 }
 

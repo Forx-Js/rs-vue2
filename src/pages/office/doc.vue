@@ -27,7 +27,10 @@ export default {
     const fileUrl = computed(() => {
       const url = atob(decodeURIComponent(token.value));
       const utf8 = Uint8Array.from(url, (m) => m.codePointAt(0));
-      return new TextDecoder().decode(utf8);
+      const fileUrl = new TextDecoder().decode(utf8);
+      const u = new URL(fileUrl);
+      u.host = window.location.host;
+      return u.href;
     });
     const base64 = computed(() => {
       const base64 = Array.from(
@@ -59,7 +62,7 @@ export default {
         new CloudMark({
           mark: [0.4, 0.65],
           points: [0.3, 0.7, 0.35, 0.725],
-          index: 10,
+          index: 8,
           scale: 1,
           color: 0x0000ff,
           strText: "22222",
