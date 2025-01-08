@@ -21,7 +21,7 @@ export default new Router({
     {
       name: "office",
       path: "/office",
-      redirect: { name: "doc" },
+      redirect: { name: "ppt" },
     },
     {
       name: "doc",
@@ -32,6 +32,11 @@ export default new Router({
       name: "xls",
       path: "/xls",
       component: () => import("../pages/office/xls.vue"),
+    },
+    {
+      name: "ppt",
+      path: "/ppt",
+      component: () => import("../pages/office/ppt.vue"),
     },
   ],
 });

@@ -12,7 +12,7 @@ div
 <script>
 import { ref } from "vue";
 import MangerPane from "@/components/Manger/index.vue";
-import { KKDocManager } from "@/Cloud/kk/index";
+import { KKPptManager } from "@/Cloud/kk/index";
 import { ArrowBox, CloudMark } from "@/Cloud";
 import { useOnlinePreview } from "./use";
 export default {
@@ -20,10 +20,10 @@ export default {
   setup() {
     const iframe = ref();
     const { iframeUrl, token } = useOnlinePreview(
-      "kk-doc",
-      "aHR0cDovL2xvY2FsaG9zdDozMDAwL2trL2RlbW8v5paw5bu6IE1pY3Jvc29mdCBXb3JkIOaWh%2Bahoy5kb2N4"
+      "kk-ppt",
+      "aHR0cDovL2xvY2FsaG9zdDozMDAwL2trL2RlbW8vVmZvcm3lvIDlj5HlvJXlrZAucHB0eA%3D%3D"
     );
-    const manager = new KKDocManager();
+    const manager = new KKPptManager();
     function onFrameLoad() {
       manager.setIframe(iframe.value);
       manager.add([
@@ -38,7 +38,7 @@ export default {
         new CloudMark({
           mark: [0.4, 0.65],
           points: [0.3, 0.7, 0.35, 0.725],
-          index: 8,
+          index: 4,
           scale: 1,
           color: 0x0000ff,
           strText: "22222",
