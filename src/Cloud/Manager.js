@@ -33,12 +33,12 @@ export class Manager {
   setParentEl(el) {
     this.setCanvas();
     el.appendChild(this.canvas);
-    this.viewEl = el;
+    this.parentEl = el;
   }
   setViewEl(el) {
     this._page_obs.observe(el, { childList: true });
     el.addEventListener("contextmenu", this._onContextmenu);
-    this.parentEl = el;
+    this.viewEl = el;
   }
   _onIntersectionObserver(rectList) {
     const activePage = this._activePage;

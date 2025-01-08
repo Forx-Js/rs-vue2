@@ -1,9 +1,10 @@
 import { Manager } from "@/Cloud/Manager";
 import { Box } from "../Box";
-import { set } from "lodash-es";
+import { max, min, set } from "lodash-es";
 const PageFlag = ".luckysheetsheetchange";
-export class KKExcelManager extends Manager {
-  // _excelObj = void 0;
+export class KKXlsManager extends Manager {
+  /** @type {HTMLDivElementF} */
+  sheetEl;
   /** @param {IntersectionObserverEntry} rectList  */
   _onMutationObserver() {
     const doc = this.iframe.contentDocument;
@@ -15,11 +16,14 @@ export class KKExcelManager extends Manager {
     this.setParentEl(doc.body);
     this.canvas.style.zIndex = 1004;
     scroll.addEventListener("scroll", this._onPageScroll);
-    this._excelObj = excelSheet;
+    this.sheetEl = this.scrollEl.querySelector(".luckysheetsheetchange");
+    this._luckysheet = excelSheet;
+    const index = excelSheet.getSheet().index;
+    this.sheetIndex = index;
   }
-  sheetIndex = 1;
+  sheetIndex = "1";
   renderFn() {
-    const page = this.scrollEl.querySelector(".luckysheetsheetchange");
+    const page = this.sheetEl;
     const { list: clouds, sheetIndex } = this;
     const visibleClouds = [];
     for (const cloud of clouds) {
@@ -34,6 +38,7 @@ export class KKExcelManager extends Manager {
   }
   setIframe(iframe) {
     this.iframe = iframe;
+    // 操作iframe里luckysheet的配置
     const doc = iframe.contentDocument;
     const options = this.iframe.contentWindow.luckysheetOptions;
     set(options, "hook.sheetActivate", (index) => {
@@ -86,10 +91,30 @@ export class KKExcelManager extends Manager {
   }
   jump(cloud) {
     const index = cloud.index;
-    const page = this.viewEl.querySelector(
-      `.img-area[data-page-number="${index}"]`
-    );
-    this.jumpToPageAndMark(page, cloud);
+    const d = this._luckysheet.getSheet({ index });
+    if (!d) return;
+    this._luckysheet.setSheetActive(d.order, {
+      success: () => {
+        const { canvas } = this;
+        const { points, mark } = cloud.data;
+        const [xRow, yRow] = [...points, ...mark].reduce(
+          (list, val, index) => {
+            list[index % 2].push(val);
+            return list;
+          },
+          [[], []]
+        );
+        const cx = (max(xRow) + min(xRow)) / 2,
+          cy = (max(yRow) + min(yRow)) / 2;
+        const pageDom = this.sheetEl;
+        const { height, width } = canvas.getBoundingClientRect();
+        const scrollLeft =
+          pageDom.offsetLeft + pageDom.clientWidth * cx - (width >> 1);
+        const scrollTop =
+          pageDom.offsetTop + pageDom.clientHeight * cy - (height >> 1);
+        this._luckysheet.scroll({ scrollLeft, scrollTop });
+      },
+    });
   }
 }
 
