@@ -111,9 +111,9 @@ export class KKPptManager extends Manager {
       leftBtn && leftBtn.style.removeProperty("display");
       rightBtn && rightBtn.style.removeProperty("display");
       dragstartCon.abort();
-    }
-    if (this._tem_box === box) {
-      this._tem_box = null;
+      if (this._tem_box === box) {
+        this._tem_box = null;
+      }
     }
   }
   jump(cloud) {

@@ -26,16 +26,19 @@ export default new Router({
     {
       name: "doc",
       path: "/doc",
+      alias: "/word",
       component: () => import("../pages/office/doc.vue"),
     },
     {
       name: "xls",
+      alias: "/excel",
       path: "/xls",
       component: () => import("../pages/office/xls.vue"),
     },
     {
       name: "ppt",
       path: "/ppt",
+      alias: "/powerpoint",
       component: () => import("../pages/office/ppt.vue"),
     },
   ],

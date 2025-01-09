@@ -1,6 +1,6 @@
 import { Manager } from "@/Cloud/Manager";
 import { Box } from "../Box";
-import { max, min, set } from "lodash-es";
+import { max, min, set, toString } from "lodash-es";
 const PageFlag = ".luckysheetsheetchange";
 export class KKXlsManager extends Manager {
   /** @type {HTMLDivElementF} */
@@ -21,13 +21,13 @@ export class KKXlsManager extends Manager {
     const index = excelSheet.getSheet().index;
     this.sheetIndex = index;
   }
-  sheetIndex = "1";
+  sheetIndex = 1;
   renderFn() {
     const page = this.sheetEl;
     const { list: clouds, sheetIndex } = this;
     const visibleClouds = [];
     for (const cloud of clouds) {
-      if (cloud.index === sheetIndex) {
+      if (toString(cloud.index) === toString(sheetIndex)) {
         cloud.pageDom = page;
         visibleClouds.push(cloud);
       }
@@ -63,10 +63,11 @@ export class KKXlsManager extends Manager {
     } finally {
       this.viewEl.style.removeProperty("touch-action");
       dragstartCon.abort();
+      if (this._tem_box === box) {
+        this._tem_box = null;
+      }
     }
-    if (this._tem_box === box) {
-      this._tem_box = null;
-    }
+    console.log(box);
   }
   getAllPage() {
     return [...this.viewEl.querySelectorAll(PageFlag)];
@@ -74,7 +75,6 @@ export class KKXlsManager extends Manager {
   getEventData(e) {
     const el = getEventPage(e);
     const index = this.sheetIndex;
-    // ~~el.dataset.pageNumber;
     return {
       e: e,
       index,
