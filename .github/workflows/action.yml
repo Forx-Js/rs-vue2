@@ -27,18 +27,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+        
       - name: Use Node.js 20
         uses: actions/setup-node@v3
         with:
           node-version: 20
-
+          cache: 'pnpm'
       # 如果你使用其他的包管理器，如 yarn 或 pnpm，
       # 你需要先安装它们
       - name: Install dependencies
-        run: npm i
+        run: pnpm install
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
