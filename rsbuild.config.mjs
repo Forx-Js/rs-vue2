@@ -3,6 +3,11 @@ import { pluginVue2 } from "@rsbuild/plugin-vue2";
 import { pluginPug } from "@rsbuild/plugin-pug";
 import { pluginSass } from "@rsbuild/plugin-sass";
 export default defineConfig({
+  output: {
+    // 请将 <REPO_NAME> 替换为仓库的名称。
+    // 比如 "/my-project/"
+    assetPrefix: "/rs-vue2/",
+  },
   plugins: [pluginSass(), pluginPug(), pluginVue2()],
   source: {
     tsconfigPath: "./jsconfig.json",
