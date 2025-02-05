@@ -2,7 +2,7 @@
 .content
   iframe.w-screen.h-screen.block(
     ref="iframe",
-    src="/pdf/web/viewer.html?file=compressed.tracemonkey-pldi-09.pdf",
+    src="./pdf/web/viewer.html?file=compressed.tracemonkey-pldi-09.pdf",
     border="0",
     frameborder="0",
     @load="onFrameLoad"
